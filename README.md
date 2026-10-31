@@ -1,6 +1,9 @@
 # AQUA
 
-Quick link to download latest release: <https://github.com/h39s/AQUA/releases/latest/download/AQUAsetup.exe>
+This fork modernizes AQUA and includes **Band Pass (BP)** filtering. Download the
+`AQUA-Windows-x64` artifact from a successful [Test workflow run](https://github.com/AndreiShenets/AQUA/actions/workflows/test.yml),
+or [build it locally](#development-prerequisites). The [upstream 1.1.1 installer](https://github.com/h39s/AQUA/releases/latest/download/AQUAsetup.exe)
+is the legacy version and does not include BP.
 
 Welcome to AQUA, a modern platform for audio equalization on Windows. Please note that EqualizerAPO is a prerequisite for our application. Our current features include
 
@@ -15,7 +18,9 @@ Welcome to AQUA, a modern platform for audio equalization on Windows. Please not
   - Gain (-30dB to 30dB)
   - Quality (0.01 - 100.00)
 
-**AQUA is currently no longer under development. We really hope to be back with an update in the future with a potentially larger team of developers as our roadmap is still full of feature requests and substantial improvements. If you are interested in helping with development please reach out to us via [email](mailto:aqua.devteam@gmail.com) with a short introduction. Thank you for your understanding.**
+**Upstream development notice:** AQUA's original developers have paused development.
+Their [upstream repository](https://github.com/h39s/AQUA) and [contact email](mailto:aqua.devteam@gmail.com)
+remain available. The toolchain and BP fixes documented here belong to this fork.
 
 ![image](https://user-images.githubusercontent.com/20293445/222267346-b0e2064d-92c2-4334-9bff-d638f9535d12.png)
 
@@ -24,7 +29,7 @@ Welcome to AQUA, a modern platform for audio equalization on Windows. Please not
 To get started using AQUA, it only takes two easy steps:
 
 1. Install [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/) if you don't have it currently installed (and make sure you run `configurator.exe` included as a part of EqualizerAPO to install the required drivers for the devices you would like to EQ).
-2. Download and run the executable `AQUAsetup.exe` from the latest [release](https://github.com/h39s/AQUA/releases).
+2. Download and extract `AQUA-Windows-x64` from a successful [workflow run](https://github.com/AndreiShenets/AQUA/actions/workflows/test.yml), then run `AQUA Setup 1.2.0.exe`. Back up your settings first when replacing an existing installation; see [Try BP safely](#try-bp-safely).
 
 ## FAQ
 
