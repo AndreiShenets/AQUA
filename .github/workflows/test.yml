@@ -2,6 +2,9 @@ name: Test
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -12,23 +15,36 @@ jobs:
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v6
 
       - name: Install Node.js and NPM
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v6
         with:
-          node-version: 16
+          node-version: 24
           cache: npm
 
-      - name: npm install
+      - name: Install dependencies
         run: |
-          npm install
+          npm ci
 
-      - name: npm test
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm run package
-          npm run lint
-          npm exec tsc
-          npm run test:unit
+      - name: Build Windows installer
+        run: npm run package -- --win --x64
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check with TypeScript 7
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test:unit -- --runInBand
+
+      - name: Packaged sandbox smoke test
+        run: npm run test:smoke
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: AQUA-Windows-x64
+          path: release/build/*.exe
+          if-no-files-found: error

@@ -149,6 +149,6 @@ describe('TextInput', () => {
     );
     const editInput = screen.getByLabelText(name);
     await user.type(editInput, '{Enter}');
-    expect(handleSubmit).toBeCalledTimes(0);
+    expect(handleSubmit).toHaveBeenCalledTimes(0);
   });
 });

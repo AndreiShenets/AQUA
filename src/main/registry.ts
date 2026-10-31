@@ -19,22 +19,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import path from 'path';
 import { app } from 'electron';
 import { promisified as regedit, setExternalVBSLocation } from 'regedit';
+import { sandboxConfigPath } from './sandbox';
 
-// app will only be defined in the electron main process environment.
-// in the test environment, we expect it to be undefined.
-if (app) {
-  const vbsDirectory = path.join(
-    path.dirname(app.getPath('exe')),
-    './resources/vbs'
-  );
-  setExternalVBSLocation(vbsDirectory);
-} else {
-  const vbsDirectory = path.join(
-    __dirname,
-    '../../../node_modules/regedit/vbs'
-  );
-  setExternalVBSLocation(vbsDirectory);
-}
+// Development and tests use regedit's installed scripts; packaged builds use
+// extraResources, independently of the directory AQUA was launched from.
+const vbsDirectory = app?.isPackaged
+  ? path.join(process.resourcesPath, 'vbs')
+  : path.join(path.dirname(require.resolve('regedit/package.json')), 'vbs');
+setExternalVBSLocation(vbsDirectory);
 
 const isSoftwareInstalled = async (softwareKey: string) => {
   const registryKey =
@@ -54,9 +46,14 @@ const isSoftwareInstalled = async (softwareKey: string) => {
 
 export const isPeaceInstalled = () => isSoftwareInstalled('Peace');
 export const isEqualizerAPOInstalled = () =>
-  isSoftwareInstalled('EqualizerAPO');
+  sandboxConfigPath
+    ? Promise.resolve(true)
+    : isSoftwareInstalled('EqualizerAPO');
 
 export const getConfigPath = async () => {
+  if (sandboxConfigPath) {
+    return sandboxConfigPath;
+  }
   const isInstalled = await isEqualizerAPOInstalled();
   if (!isInstalled) {
     throw new Error('Equalizer APO not installed');

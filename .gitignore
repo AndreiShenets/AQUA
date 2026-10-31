@@ -22,6 +22,7 @@ release/app/dist
 release/build
 build
 .erb/dll
+.erb/chromedriver
 
 .idea
 npm-debug.log.*

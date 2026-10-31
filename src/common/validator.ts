@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 // Heavily modified from the validator generated from @rkesters/typescript-json-validator
+import { FilterTypeEnum } from './constants';
+
 const Ajv = require('ajv');
 
 export const ajv = new Ajv({
@@ -38,7 +40,7 @@ const IStateSchema = {
   defaultProperties: [],
   definitions: {
     FilterTypeEnum: {
-      enum: ['HSC', 'LSC', 'PK'],
+      enum: Object.values(FilterTypeEnum),
       type: 'string',
     },
     IFiltersMap: {
@@ -104,7 +106,7 @@ export const IPresetSchemaV1 = {
   defaultProperties: [],
   definitions: {
     FilterTypeEnum: {
-      enum: ['HSC', 'LSC', 'PK'],
+      enum: Object.values(FilterTypeEnum),
       type: 'string',
     },
     IFilter: {
@@ -150,7 +152,7 @@ const IPresetSchemaV2 = {
   defaultProperties: [],
   definitions: {
     FilterTypeEnum: {
-      enum: ['HSC', 'LSC', 'PK'],
+      enum: Object.values(FilterTypeEnum),
       type: 'string',
     },
     Filters: {

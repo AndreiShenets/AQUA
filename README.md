@@ -4,35 +4,35 @@ Quick link to download latest release: <https://github.com/h39s/AQUA/releases/la
 
 Welcome to AQUA, a modern platform for audio equalization on Windows. Please note that EqualizerAPO is a prerequisite for our application. Our current features include
 
-* System-wide parametric audio equalization (through [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/))
-* AutoEQ integration (credit to [Jaakko Pasanen](https://github.com/jaakkopasanen/AutoEq/tree/master/results) and [Ian Walton](https://github.com/iwalton3/AutoEq) for their preset results for the Harman, IEF, and IEF with bass targets)
-* Auto Pre-amp Gain to ensure your maximum gain never exceeds 0dB
-* Saving/loading equalizer presets
-* Graph visualizer for equalizer settings (between 10 Hz and 20 KHz)
-* Up to 20 filters (+ preamp gain) with adjustable
-  * Filter type (low shelf, peak, or high shelf)
-  * Centre frequency (1 Hz - 20 KHz)
-  * Gain (-30dB to 30dB)
-  * Quality (0.01 - 100.00)
+- System-wide parametric audio equalization (through [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/))
+- AutoEQ integration (credit to [Jaakko Pasanen](https://github.com/jaakkopasanen/AutoEq/tree/master/results) and [Ian Walton](https://github.com/iwalton3/AutoEq) for their preset results for the Harman, IEF, and IEF with bass targets)
+- Auto Pre-amp Gain to ensure your maximum gain never exceeds 0dB
+- Saving/loading equalizer presets
+- Graph visualizer for equalizer settings (between 10 Hz and 20 KHz)
+- Up to 20 filters (+ preamp gain) with adjustable
+  - Filter type (peak, low/high shelf, low/high pass, notch, or **band pass / BP**)
+  - Centre frequency (1 Hz - 20 KHz)
+  - Gain (-30dB to 30dB)
+  - Quality (0.01 - 100.00)
 
 **AQUA is currently no longer under development. We really hope to be back with an update in the future with a potentially larger team of developers as our roadmap is still full of feature requests and substantial improvements. If you are interested in helping with development please reach out to us via [email](mailto:aqua.devteam@gmail.com) with a short introduction. Thank you for your understanding.**
 
 ![image](https://user-images.githubusercontent.com/20293445/222267346-b0e2064d-92c2-4334-9bff-d638f9535d12.png)
 
-
 ## Getting Started
 
 To get started using AQUA, it only takes two easy steps:
+
 1. Install [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/) if you don't have it currently installed (and make sure you run `configurator.exe` included as a part of EqualizerAPO to install the required drivers for the devices you would like to EQ).
 2. Download and run the executable `AQUAsetup.exe` from the latest [release](https://github.com/h39s/AQUA/releases).
 
 ## FAQ
 
-By default, the Windows file system does not support case sensitive file names (i.e. you cannot have files/folders named `AQUA` and `aqua` in the same directory). 
+By default, the Windows file system does not support case sensitive file names (i.e. you cannot have files/folders named `AQUA` and `aqua` in the same directory).
 
 - On Windows 11, AQUA is able to enable case sensitivity specifically for our `presets` folder so users can save presets with case-sensitive names.
 - On Windows 10, if you would like to enable this feature you will have to install [WSL](https://learn.microsoft.com/en-us/windows/wsl/). You can do so by opening a PowerShell window as an administrator and running `wsl --install`.
-   - If you have existing presets saved in AQUA, you will need to temporarily empty the presets folder (`C:\Users\<username>\AppData\Roaming\aqua\presets`) before starting the app to enable case sensitivity. Your existing presets can then be copied back into the presets folder.
+  - If you have existing presets saved in AQUA, you will need to temporarily empty the presets folder (`C:\Users\<username>\AppData\Roaming\aqua\presets`) before starting the app to enable case sensitivity. Your existing presets can then be copied back into the presets folder.
 - On Windows 7, 8, and 8.1, case sensitive preset naming is not available.
 
 ## Get In Touch
@@ -41,18 +41,76 @@ If you find any bugs, have any feature requests, or want to give us any kind of 
 
 ## Development Prerequisites
 
-1. Install [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/)
-2. Install Visual Studio 2022. Check "Desktop Development with C++"
-3. Clone this repository
-4. Run `npm install` in the project folder
-   - May need to install latest node-gyp in npm ([link](https://github.com/nodejs/node-gyp/blob/master/docs/Updating-npm-bundled-node-gyp.md))
-   - When installing `node-gyp`, ensure msvs_version is set to 2022 in npm config
+- Windows 10/11 **64-bit**; Equalizer APO is needed for live system audio.
+- Node.js **24 LTS** recommended (minimum 22.12), npm 10 or newer.
+- Visual Studio C++ Build Tools are only needed if a native dependency has no prebuilt binary.
+
+```sh
+npm ci
+npm run typecheck
+npm run lint
+npm run test:unit -- --runInBand
+npm run package -- --win --x64
+npm run test:smoke
+```
+
+The installer and unpacked application are written to `release/build/`. Builds
+without a signing certificate are unsigned; Windows may show a SmartScreen warning.
+Packaging does not install AQUA or modify your audio configuration.
+
+### Modern toolchain
+
+This fork uses Electron **45.2.1**, React **19**, and TypeScript **7.0.2**.
+ChromeDriver is downloaded from the exact pinned Electron release using Electron's
+current checksum-verifying downloader and native ZIP extractor (the old
+`electron-chromedriver` wrapper uses an obsolete extractor). Node typings follow Electron's
+embedded Node.js 24 rather than the newer Node.js used on some developer machines.
+
+TypeScript 7 checks all application, test, and build-configuration types through
+`npm run typecheck`. `tsx` runs build scripts, `esbuild-loader` transpiles webpack
+inputs, SWC transforms Jest tests, and Oxlint replaces the legacy ESLint presets.
+These tools do not depend on TypeScript's removed JavaScript compiler API. React
+Compiler-specific lint rules are disabled because this project does not use React
+Compiler; existing semantic-button accessibility suggestions remain warnings.
+`skipLibCheck` avoids conflicting upstream DOM/URLPattern and native-library
+declarations; application and test type-checking remains strict.
+
+On npm 12+, the reviewed binary-install scripts are explicitly approved in
+`package.json`. Unneeded browser-driver and optional/fallback scripts are not
+blanket-approved. New dependency versions may need a fresh script review.
+
+`npm audit --omit=dev` checks runtime dependencies. Development-tool dependencies
+may still have upstream advisories even at their latest releases; do not use
+`npm audit fix --force` to silently downgrade the modern toolchain.
+
+### Try BP safely
+
+To run the unpacked application without changing live presets or APO files:
+
+```powershell
+& '.\release\build\win-unpacked\AQUA.exe' --aqua-sandbox=C:\Temp\aqua-preview
+```
+
+The sandbox stores settings/presets under `user-data/` and simulated APO output
+under `config/` in that directory. It does **not** change system audio, enable
+case-sensitive directories, or check for updates. `npm run test:smoke` creates
+and cleans up its own hidden sandbox and tests the packaged application through
+ChromeDriver, including BP selection and persistence after restarting.
+
+In the filter dropdown choose the green **Band Pass Filter** icon. Set its center
+frequency and Q; gain is intentionally disabled. BP attenuates frequencies outside
+the pass band. Saved presets and settings now accept all supported filter types.
+
+Before using the new build against live audio, close the old AQUA and back up
+`%APPDATA%\aqua` and your Equalizer APO `config` directory. Launching without
+`--aqua-sandbox` uses the normal AQUA settings and live APO integration. This
+fork's updater points to `AndreiShenets/AQUA`, not upstream releases.
 
 ## License
 
 AQUA: System-wide parametric audio equalizer interface
 
-Copyright (C) 2023  AQUA Dev Team
+Copyright (C) 2023 AQUA Dev Team
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -61,8 +119,8 @@ the Free Software Foundation, either version 3 of the License, or
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program. If not, see <https://www.gnu.org/licenses/>.

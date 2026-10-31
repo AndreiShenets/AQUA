@@ -49,9 +49,7 @@ export enum FilterActionEnum {
 }
 
 type NumericalFilterAction =
-  | FilterActionEnum.FREQUENCY
-  | FilterActionEnum.GAIN
-  | FilterActionEnum.QUALITY;
+  FilterActionEnum.FREQUENCY | FilterActionEnum.GAIN | FilterActionEnum.QUALITY;
 
 export type FilterAction =
   | { type: FilterActionEnum.INIT; filters: IFiltersMap }
@@ -171,7 +169,7 @@ export const AquaProvider = ({ children }: IAquaProviderProps) => {
     DEFAULT_STATE.isCaseSensitiveFs
   );
   const [preAmp, setPreAmp] = useState<number>(DEFAULT_STATE.preAmp);
-  const [filters, dispatchFilter] = useReducer<IFilterReducer>(
+  const [filters, dispatchFilter] = useReducer(
     filterReducer,
     DEFAULT_STATE.filters
   );

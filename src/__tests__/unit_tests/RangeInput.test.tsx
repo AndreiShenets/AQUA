@@ -69,7 +69,7 @@ describe('RangeInput', () => {
       target: { value: -5 },
     });
 
-    expect(handleChange).toBeCalledWith(-5);
+    expect(handleChange).toHaveBeenCalledWith(-5);
   });
 
   it('should allow input to be changed to a positive value', () => {
@@ -93,7 +93,7 @@ describe('RangeInput', () => {
       target: { value: 5 },
     });
 
-    expect(handleChange).toBeCalledWith(5);
+    expect(handleChange).toHaveBeenCalledWith(5);
   });
 
   it('should increase value using up arrow', async () => {
@@ -112,7 +112,7 @@ describe('RangeInput', () => {
     );
     const arrow = screen.getByLabelText(`Increase ${name}`);
     await user.click(arrow);
-    expect(handleChange).toBeCalledWith(1);
+    expect(handleChange).toHaveBeenCalledWith(1);
   });
 
   it('should decrease value using down arrow', async () => {
@@ -131,7 +131,7 @@ describe('RangeInput', () => {
     );
     const arrow = screen.getByLabelText(`Decrease ${name}`);
     await user.click(arrow);
-    expect(handleChange).toBeCalledWith(-1);
+    expect(handleChange).toHaveBeenCalledWith(-1);
   });
 
   it('should increase value when scrolling up', async () => {
@@ -150,7 +150,7 @@ describe('RangeInput', () => {
     );
     const slider = screen.getByLabelText(`${name}`);
     fireEvent.wheel(slider, { deltaY: -100 });
-    expect(handleChange).toBeCalledWith(1);
+    expect(handleChange).toHaveBeenCalledWith(1);
   });
 
   it('should increase value when scrolling down', async () => {
@@ -169,7 +169,7 @@ describe('RangeInput', () => {
     );
     const slider = screen.getByLabelText(`${name}`);
     fireEvent.wheel(slider, { deltaY: 43 });
-    expect(handleChange).toBeCalledWith(-1);
+    expect(handleChange).toHaveBeenCalledWith(-1);
   });
 
   it('should increment value using up arrow for non-zero precision', async () => {
@@ -190,7 +190,7 @@ describe('RangeInput', () => {
     );
     const arrow = screen.getByLabelText(`Increase ${name}`);
     await user.click(arrow);
-    expect(handleChange).toBeCalledWith(0.1);
+    expect(handleChange).toHaveBeenCalledWith(0.1);
   });
 
   it('should increment value using up arrow for non-integer increment', async () => {
@@ -211,7 +211,7 @@ describe('RangeInput', () => {
     );
     const arrow = screen.getByLabelText(`Increase ${name}`);
     await user.click(arrow);
-    expect(handleChange).toBeCalledWith(1.4);
+    expect(handleChange).toHaveBeenCalledWith(1.4);
   });
 
   it('should be disabled', async () => {

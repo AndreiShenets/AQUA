@@ -45,7 +45,7 @@ const chromeDriver = startChromeDriver();
 const feature = loadFeature(
   './src/__tests__/cucumber_tests/features/set_filter_type.feature'
 );
-const webdriver: { driver: Driver } = { driver: undefined };
+const webdriver: { driver: Driver | undefined } = { driver: undefined };
 
 defineFeature(feature, (test) => {
   test('Select a new filter type using a mouse', async ({

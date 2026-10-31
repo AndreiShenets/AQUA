@@ -30,7 +30,7 @@ const configuration: webpack.Configuration = {
 
   mode: 'production',
 
-  target: ['web', 'electron-renderer'],
+  target: 'web',
 
   entry: [path.join(webpackPaths.srcRendererPath, 'index.tsx')],
 

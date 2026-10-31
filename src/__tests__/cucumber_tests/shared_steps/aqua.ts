@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import { ChildProcessWithoutNullStreams } from 'child_process';
 import { DefineStepFunction } from 'jest-cucumber';
-import getWebDriver, { Driver } from '__tests__/utils/webdriver';
+import getWebDriver, { Driver, getDriver } from '__tests__/utils/webdriver';
 
 export const givenAquaIsNotRunning = (given: DefineStepFunction) => {
   given('Aqua is not running', () => {
@@ -60,7 +60,7 @@ export const givenEnabledState = (
     /^Aqua equalizer state is (enabled|disabled)$/,
     async (state: string) => {
       const desiredState = state === 'enabled';
-      const equalizerSwitch = await webdriver.driver.$(
+      const equalizerSwitch = await getDriver(webdriver).$(
         '.side-bar label[class="switch"][for="equalizerEnabler"]'
       );
 
@@ -81,7 +81,7 @@ export const whenSetEnabledState = (
   webdriver: { driver: Driver | undefined }
 ) => {
   when(/^I toggle the equalizer state$/, async () => {
-    const equalizerSwitch = await webdriver.driver.$('.side-bar .switch');
+    const equalizerSwitch = await getDriver(webdriver).$('.side-bar .switch');
     equalizerSwitch.click();
     // wait 1000 ms for the action.
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -94,7 +94,7 @@ export const givenAutoPreAmpState = (
 ) => {
   given(/^auto pre-amp is (on|off)$/, async (state: string) => {
     const desiredState = state === 'on';
-    const equalizerSwitch = await webdriver.driver.$(
+    const equalizerSwitch = await getDriver(webdriver).$(
       '.side-bar label[class="switch"][for="autoPreAmpEnabler"]'
     );
 

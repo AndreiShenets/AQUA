@@ -48,6 +48,7 @@ import {
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { getConfigPath, isEqualizerAPOInstalled } from './registry';
+import { isSandbox } from './sandbox';
 import ChannelEnum from '../common/channels';
 import {
   FilterTypeEnum,
@@ -86,7 +87,9 @@ export default class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
+    autoUpdater.checkForUpdatesAndNotify().catch((error) => {
+      log.warn('Unable to check for updates', error);
+    });
   }
 }
 
@@ -129,21 +132,23 @@ try {
 }
 
 // spawn child process to update presets folder so that it can support case-sensitive files
-exec(
-  `fsutil.exe file SetCaseSensitiveInfo "${presetPath}"`,
-  (err, stdout, stderr) => {
-    // Error handling should occur in this callback function
-    if (err) {
-      console.error(err.message.trim());
-      console.error(stdout.trim());
-      console.error(stderr.trim());
-      return;
-    }
+if (!isSandbox) {
+  exec(
+    `fsutil.exe file SetCaseSensitiveInfo "${presetPath}"`,
+    (err, stdout, stderr) => {
+      // Error handling should occur in this callback function
+      if (err) {
+        console.error(err.message.trim());
+        console.error(stdout.trim());
+        console.error(stderr.trim());
+        return;
+      }
 
-    // Set case sensitive to true if an error was not thrown
-    state.isCaseSensitiveFs = true;
-  }
-);
+      // Set case sensitive to true if an error was not thrown
+      state.isCaseSensitiveFs = true;
+    }
+  );
+}
 
 const retryHelper = async (attempts: number, f: () => unknown) => {
   for (let i = 0; i < attempts; i += 1) {
@@ -686,7 +691,7 @@ const isDebug =
   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 if (isDebug) {
-  require('electron-debug')();
+  require('electron-debug').default();
 }
 
 const installExtensions = async () => {
@@ -697,7 +702,7 @@ const installExtensions = async () => {
   return installer
     .default(
       extensions.map((name) => installer[name]),
-      forceDownload
+      { forceDownload }
     )
     .catch(console.log);
 };
@@ -724,6 +729,9 @@ const createMainWindow = async () => {
     icon: getAssetPath('icon.png'),
     resizable: true,
     webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
@@ -743,6 +751,9 @@ const createMainWindow = async () => {
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
+    }
+    if (isSandbox && app.commandLine.hasSwitch('aqua-sandbox-hidden')) {
+      return;
     }
     if (process.env.START_MINIMIZED) {
       mainWindow.minimize();
@@ -771,7 +782,9 @@ const createMainWindow = async () => {
 
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
-  new AppUpdater();
+  if (!isSandbox) {
+    new AppUpdater();
+  }
 };
 
 /**

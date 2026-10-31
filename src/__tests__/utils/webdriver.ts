@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { remote, RemoteOptions } from 'webdriverio';
+import { remote } from 'webdriverio';
 import path from 'path';
 
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 
-const options: RemoteOptions = {
+const options: Parameters<typeof remote>[0] = {
   hostname: 'localhost', // Use localhost as chrome driver server
   port: 9515, // "9515" is the port opened by chrome driver.
   capabilities: {
@@ -39,7 +39,8 @@ const options: RemoteOptions = {
 export const startChromeDriver = () => {
   const cwd = path.join(__dirname, '../../../');
   const chromedriverPath = path.join(
-    'node_modules/electron-chromedriver/bin',
+    '.erb/chromedriver',
+    `${process.platform}-${process.arch}`,
     'chromedriver.exe'
   );
   return spawn(chromedriverPath, ['--port=9515'], {
@@ -64,3 +65,12 @@ export default async function getWebDriver(
 }
 
 export type Driver = Awaited<ReturnType<typeof getWebDriver>>;
+
+export const getDriver = (webdriver: {
+  driver: Driver | undefined;
+}): Driver => {
+  if (!webdriver.driver) {
+    throw new Error('AQUA must be launched before interacting with it.');
+  }
+  return webdriver.driver;
+};

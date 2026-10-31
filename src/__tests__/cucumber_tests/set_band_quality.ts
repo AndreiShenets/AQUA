@@ -46,7 +46,7 @@ const chromeDriver = startChromeDriver();
 const feature = loadFeature(
   './src/__tests__/cucumber_tests/features/set_band_quality.feature'
 );
-const webdriver: { driver: Driver } = { driver: undefined };
+const webdriver: { driver: Driver | undefined } = { driver: undefined };
 
 defineFeature(feature, (test) => {
   test('Select a new quality using the input field', async ({

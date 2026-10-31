@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { U } from 'win32-api';
-import { UINT_PTR, LONG_PTR, HANDLE } from 'win32-def/dist/lib/win.model';
+import { User32 } from 'win32-api';
+import type { UINT_PTR, LONG_PTR, HANDLE } from 'win32-def/types';
 
 // See win32 documentation https://docs.microsoft.com/en-us/windows/win32/winmsg/wm-app
 const WM_APP = 0x8000;
-const user32 = U.load(); // load all apis defined in lib/{dll}/api from user32.dll
+const user32 = User32.load(['FindWindowExW', 'SendMessageW']);
 const peaceTitle = 'Peace window messages';
 const peaceLpszWindow = Buffer.from(peaceTitle, 'ucs2');
 

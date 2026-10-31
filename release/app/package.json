@@ -1,6 +1,6 @@
 {
   "name": "aqua",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "An audio equalizer app",
   "license": "GPLv3",
   "author": {
@@ -8,11 +8,12 @@
   },
   "main": "./dist/main/main.js",
   "scripts": {
-    "electron-rebuild": "node -r ts-node/register ../../.erb/scripts/electron-rebuild.js",
+    "electron-rebuild": "node --import tsx ../../.erb/scripts/electron-rebuild.js",
     "postinstall": "npm run electron-rebuild && npm run link-modules",
-    "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
+    "link-modules": "node --import tsx ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
-    "win32-api": "^9.6.0"
+    "win32-api": "^26.1.2",
+    "win32-def": "^26.1.2"
   }
 }
