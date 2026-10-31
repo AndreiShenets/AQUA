@@ -51,7 +51,7 @@ const chromeDriver = startChromeDriver();
 const feature = loadFeature(
   './src/__tests__/cucumber_tests/features/auto_preamp.feature'
 );
-const webdriver: { driver: Driver } = { driver: undefined };
+const webdriver: { driver: Driver | undefined } = { driver: undefined };
 
 defineFeature(feature, (test) => {
   test('Apply auto pre-amp', async ({ given, when, then }) => {

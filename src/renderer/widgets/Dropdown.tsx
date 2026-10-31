@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import {
+  type JSX,
   KeyboardEvent,
   useEffect,
   useMemo,

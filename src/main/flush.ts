@@ -23,6 +23,7 @@ import {
   IPresetV1,
   IPresetV2,
   IState,
+  NO_GAIN_FILTER_TYPES,
 } from '../common/constants';
 import {
   validatePresetV1,
@@ -46,7 +47,10 @@ export const stateToString = (state: IState) => {
   output = output.concat(
     Object.values(state.filters).map(
       ({ frequency, gain, type, quality }, index) => {
-        return `Filter${index}: ON ${type} Fc ${frequency} Hz Gain ${gain} dB Q ${quality}`;
+        const gainParameter = NO_GAIN_FILTER_TYPES.includes(type)
+          ? ''
+          : ` Gain ${gain} dB`;
+        return `Filter${index}: ON ${type} Fc ${frequency} Hz${gainParameter} Q ${quality}`;
       }
     )
   );

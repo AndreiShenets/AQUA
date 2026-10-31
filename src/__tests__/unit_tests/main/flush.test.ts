@@ -32,6 +32,8 @@ import {
   updateConfig,
 } from 'main/flush';
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import {
   FilterTypeEnum,
   getDefaultState,
@@ -41,7 +43,17 @@ import {
 
 const TEST_DATA_DIR = 'src/__tests__/data';
 const TEST_DATA_READ_DIR = addFileToPath(TEST_DATA_DIR, 'read_only');
-const TEST_DATA_WRITE_DIR = addFileToPath(TEST_DATA_DIR, 'write');
+const TEST_DATA_WRITE_DIR = fs.mkdtempSync(
+  path.join(os.tmpdir(), 'aqua-flush-')
+);
+
+beforeAll(() => {
+  fs.writeFileSync(addFileToPath(TEST_DATA_WRITE_DIR, 'config.txt'), '');
+});
+
+afterAll(() => {
+  fs.rmSync(TEST_DATA_WRITE_DIR, { recursive: true, force: true });
+});
 const mockSettings = {
   isEnabled: true,
   isAutoPreAmpOn: true,

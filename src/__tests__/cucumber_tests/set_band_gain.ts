@@ -44,7 +44,7 @@ const chromeDriver = startChromeDriver();
 const feature = loadFeature(
   './src/__tests__/cucumber_tests/features/set_band_gain.feature'
 );
-const webdriver: { driver: Driver } = { driver: undefined };
+const webdriver: { driver: Driver | undefined } = { driver: undefined };
 
 defineFeature(feature, (test) => {
   test('Move slider to bottom', async ({ given, when, then }) => {

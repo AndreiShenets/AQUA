@@ -7,7 +7,6 @@ import path from 'path';
 import { merge } from 'webpack-merge';
 import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
-import { dependencies } from '../../package.json';
 import checkNodeEnv from '../scripts/check-node-env';
 
 checkNodeEnv('development');
@@ -21,7 +20,7 @@ const configuration: webpack.Configuration = {
 
   mode: 'development',
 
-  target: 'electron-renderer',
+  target: 'web',
 
   externals: ['fsevents', 'crypto-browserify'],
 
@@ -31,7 +30,7 @@ const configuration: webpack.Configuration = {
   module: require('./webpack.config.renderer.dev').default.module,
 
   entry: {
-    renderer: Object.keys(dependencies || {}),
+    renderer: ['react', 'react-dom', 'react-router-dom', 'd3', 'uid'],
   },
 
   output: {

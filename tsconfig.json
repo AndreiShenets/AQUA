@@ -1,25 +1,40 @@
 {
   "compilerOptions": {
-    "target": "es2021",
-    "module": "commonjs",
-    "lib": ["dom", "es2021"],
+    "target": "es2022",
+    "module": "nodenext",
+    "lib": ["dom", "es2022"],
+    "types": ["node", "jest"],
     "declaration": true,
     "declarationMap": true,
     "jsx": "react-jsx",
     "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
     "pretty": true,
     "sourceMap": true,
-    "baseUrl": "./src",
+    "paths": {
+      "common/*": ["./src/common/*"],
+      "main/*": ["./src/main/*"],
+      "renderer/*": ["./src/renderer/*"],
+      "__tests__/*": ["./src/__tests__/*"]
+    },
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "allowJs": true,
     "outDir": "release/app/dist"
   },
-  "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]
+  "include": ["src", ".erb/configs", ".erb/scripts"],
+  "exclude": [
+    "test",
+    "release/build",
+    "release/app/dist",
+    ".erb/dll",
+    "src/node_modules"
+  ]
 }

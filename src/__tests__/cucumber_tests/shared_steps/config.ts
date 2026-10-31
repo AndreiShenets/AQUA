@@ -21,7 +21,7 @@ import path from 'path';
 
 import { AQUA_CONFIG_FILENAME } from 'main/flush';
 import { DefineStepFunction } from 'jest-cucumber';
-import { Driver } from '__tests__/utils/webdriver';
+import { Driver, getDriver } from '__tests__/utils/webdriver';
 import { getConfigPath } from 'main/registry';
 
 interface FilterSettings {
@@ -102,13 +102,16 @@ export const readAquaConfig = (configPath: string) => {
       if (Number.isNaN(parsedSetting.freq)) {
         throw new Error(`Invalid filter freq parsed "${settings[3]}"`);
       }
-      parsedSetting.gain = parseFloat(settings[6]);
+      const gainIndex = settings.indexOf('Gain');
+      parsedSetting.gain =
+        gainIndex === -1 ? 0 : parseFloat(settings[gainIndex + 1]);
       if (Number.isNaN(parsedSetting.gain)) {
-        throw new Error(`Invalid filter gain parsed "${settings[6]}"`);
+        throw new Error(`Invalid filter gain in "${line}"`);
       }
-      parsedSetting.quality = parseFloat(settings[9]);
+      const qualityIndex = settings.indexOf('Q');
+      parsedSetting.quality = parseFloat(settings[qualityIndex + 1]);
       if (Number.isNaN(parsedSetting.quality)) {
-        throw new Error(`Invalid filter quality parsed "${settings[9]}"`);
+        throw new Error(`Invalid filter quality in "${line}"`);
       }
       state.filters[filterIndex] = parsedSetting;
     } else {
@@ -162,7 +165,7 @@ export const thenFrequencyGain = (
   then(
     /^Aqua config file should show gain of (-?\d+)dB for frequency (\d+)Hz$/,
     async (gain: string, frequency: string) => {
-      const sliderElems = await webdriver.driver
+      const sliderElems = await getDriver(webdriver)
         .$('.main-content')
         .$$('.range');
       for (let i = 0; i < sliderElems.length; i += 1) {
@@ -187,7 +190,7 @@ export const thenFrequencyQuality = (
   then(
     /^Aqua config file should show a quality of (\d+.?\d+) for the band with frequency (\d+)Hz$/,
     async (quality: string, frequency: string) => {
-      const sliderElems = await webdriver.driver
+      const sliderElems = await getDriver(webdriver)
         .$('.main-content')
         .$$('.range');
       for (let i = 0; i < sliderElems.length; i += 1) {
@@ -212,7 +215,7 @@ export const thenFrequencyFilterType = (
   then(
     /^Aqua config file should show the (\w+) filter type for the band with frequency (\d+)Hz$/,
     async (filterType: string, frequency: string) => {
-      const sliderElems = await webdriver.driver
+      const sliderElems = await getDriver(webdriver)
         .$('.main-content')
         .$$('.range');
       for (let i = 0; i < sliderElems.length; i += 1) {

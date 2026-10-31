@@ -41,7 +41,7 @@ const chromeDriver = startChromeDriver();
 const feature = loadFeature(
   './src/__tests__/cucumber_tests/features/change_number_of_bands.feature'
 );
-const webdriver: { driver: Driver } = { driver: undefined };
+const webdriver: { driver: Driver | undefined } = { driver: undefined };
 
 defineFeature(feature, (test) => {
   test('Add a frequency band', async ({ given, when, then }) => {

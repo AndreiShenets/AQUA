@@ -30,11 +30,9 @@ import {
   IFiltersMap,
 } from '../common/constants';
 
-let AUTOEQ_DIR = './resources/autoeq';
-if (!!app && !app.isPackaged) {
-  // dev mode means there is no resources folder and we must access our repo's autoeq folder.
-  AUTOEQ_DIR = path.join(__dirname, '../../autoeq');
-}
+const AUTOEQ_DIR = app?.isPackaged
+  ? path.join(process.resourcesPath, 'autoeq')
+  : path.join(__dirname, '../../autoeq');
 
 export const getAutoEqDeviceList = (autoeqDir: string = AUTOEQ_DIR) => {
   return fs.readdirSync(autoeqDir);

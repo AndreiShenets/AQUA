@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /* eslint import/prefer-default-export: off, import/no-mutable-exports: off */
-import { URL } from 'url';
+import { URL, pathToFileURL } from 'url';
 import path from 'path';
 
 export let resolveHtmlPath: (htmlFileName: string) => string;
@@ -31,6 +31,7 @@ if (process.env.NODE_ENV === 'development') {
   };
 } else {
   resolveHtmlPath = (htmlFileName: string) => {
-    return `file://${path.resolve(__dirname, '../renderer/', htmlFileName)}`;
+    return pathToFileURL(path.resolve(__dirname, '../renderer/', htmlFileName))
+      .href;
   };
 }

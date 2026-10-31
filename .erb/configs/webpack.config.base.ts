@@ -17,10 +17,10 @@ const configuration: webpack.Configuration = {
         test: /\.[jt]sx?$/,
         exclude: /node_modules/,
         use: {
-          loader: 'ts-loader',
+          loader: 'esbuild-loader',
           options: {
-            // Remove this line to enable type checking in webpack builds
-            transpileOnly: true,
+            // TypeScript 7 checks types separately via npm run typecheck.
+            target: 'es2022',
           },
         },
       },
