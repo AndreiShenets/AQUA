@@ -20,6 +20,46 @@ import { FilterTypeEnum, FilterTypeToLabelMap } from 'common/constants';
 
 const FilterTypeIcon = ({ type }: { type: FilterTypeEnum }) => {
   switch (type) {
+    case FilterTypeEnum.BP_EQ:
+    case FilterTypeEnum.LP_EQ:
+    case FilterTypeEnum.HP_EQ:
+      return (
+        <svg
+          width="32"
+          height="24"
+          viewBox="0 0 32 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <title>{FilterTypeToLabelMap[type]}</title>
+          <path
+            d={
+              type === FilterTypeEnum.BP_EQ
+                ? 'M1 13H7C12 13 11 2 16 2S20 13 25 13H31'
+                : type === FilterTypeEnum.LP_EQ
+                  ? 'M1 3H12C20 3 17 13 25 13H31'
+                  : 'M1 13H7C15 13 12 3 20 3H31'
+            }
+            fill="none"
+            stroke={
+              type === FilterTypeEnum.BP_EQ
+                ? '#4FF784'
+                : type === FilterTypeEnum.LP_EQ
+                  ? '#F7844F'
+                  : '#4FF7D8'
+            }
+            strokeWidth="2"
+          />
+          <text
+            x="16"
+            y="23"
+            textAnchor="middle"
+            fontSize="8"
+            fill="currentColor"
+          >
+            {type.replace('_', ' ')}
+          </text>
+        </svg>
+      );
     case FilterTypeEnum.PK:
       return (
         <svg

@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { FilterTypeEnum, IFilter } from 'common/constants';
+import { getPassFilterEqGain, isPassFilterEq } from 'common/passFilterEq';
 import { range } from 'renderer/utils/utils';
 import {
   IChartPointData,
@@ -194,6 +195,12 @@ export const getPreAmpLine = (preAmp: number): IChartPointData[] =>
 
 // Get curve and point info for individual filters
 export const getFilterLineData = (filter: IFilter): IChartPointData[] => {
+  if (isPassFilterEq(filter.type)) {
+    return SAMPLE_FREQUENCIES.map((frequency) => ({
+      x: frequency,
+      y: getPassFilterEqGain(filter, frequency, SAMPLE_FREQUENCY),
+    }));
+  }
   const tf = getTFCoefficients(filter);
 
   const data: IChartPointData[] = SAMPLE_FREQUENCIES.map((f) => {

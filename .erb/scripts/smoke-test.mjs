@@ -25,6 +25,13 @@ assert.ok(
   'Run npm run install:chromedriver first'
 );
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'aqua-smoke-'));
+const eqBands = [
+  { frequency: 500, type: 'BP_EQ', label: 'Band Pass EQ', gain: 6 },
+  { frequency: 2000, type: 'LP_EQ', label: 'Low Pass EQ', gain: -6 },
+  { frequency: 4000, type: 'HP_EQ', label: 'High Pass EQ', gain: 9 },
+];
+const readConfig = () =>
+  fs.readFileSync(path.join(directory, 'config/aqua.txt'), 'utf8');
 
 const launch = () =>
   remote({
@@ -94,6 +101,65 @@ try {
   assert.match(config, /ON BP Fc 1000 Hz Q 1/);
   assert.doesNotMatch(config, /ON BP[^\r\n]*Gain/);
 
+  for (const { frequency, type, label, gain } of eqBands) {
+    await driver.execute((name) => {
+      document.querySelector(`[aria-label="${name}-filter-type"]`).click();
+    }, frequency);
+    await driver.$(`[aria-label="${label}"]`).waitForExist();
+    await driver.execute((name) => {
+      document.querySelector(`[aria-label="${name}"]`).click();
+    }, label);
+    const input = await driver.$(`[aria-label="${frequency}-gain-number"]`);
+    await driver.waitUntil(() => input.isEnabled(), { timeout: 10000 });
+    // Native input events exercise the real renderer handlers while the sandbox
+    // window stays hidden. Send focusout after React processes input: native
+    // focus/blur need not fire for a hidden Electron window. React maps this
+    // bubbling event to NumberInput's onBlur submission handler.
+    await driver.execute(
+      (name, value) => {
+        const field = document.querySelector(
+          `[aria-label="${name}-gain-number"]`
+        );
+        field.focus();
+        Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value'
+        ).set.call(field, String(value));
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      frequency,
+      gain
+    );
+    await driver.execute((name) => {
+      document
+        .querySelector(`[aria-label="${name}-gain-number"]`)
+        .dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+    }, frequency);
+    await driver.waitUntil(
+      () => {
+        const state = JSON.parse(
+          fs.readFileSync(path.join(directory, 'user-data/state.txt'), 'utf8')
+        );
+        return (
+          Object.values(state.filters).some(
+            (filter) =>
+              filter.frequency === frequency &&
+              filter.type === type &&
+              filter.gain === gain
+          ) && readConfig().includes(`# ${type}:`)
+        );
+      },
+      { timeout: 10000, timeoutMsg: `${label} gain was not persisted/exported` }
+    );
+  }
+  assert.equal(
+    (readConfig().match(/ON IIR Order 2 Coefficients/g) || []).length,
+    3
+  );
+  assert.match(readConfig(), /sampleRate/);
+  assert.doesNotMatch(readConfig(), /ON (BP_EQ|LP_EQ|HP_EQ)/);
+  const savedConfig = readConfig();
+
   await driver.deleteSession();
   driver = undefined;
   driver = await launch();
@@ -114,8 +180,20 @@ try {
     await driver.$('[aria-label="1000-gain-number"]').isEnabled(),
     false
   );
+  for (const { frequency, label, gain } of eqBands) {
+    assert.equal(
+      await driver
+        .$(`[aria-label="${frequency}-filter-type"] > svg:first-child title`)
+        .getProperty('textContent'),
+      label
+    );
+    const input = await driver.$(`[aria-label="${frequency}-gain-number"]`);
+    assert.equal(await input.isEnabled(), true);
+    assert.equal(Number(await input.getValue()), gain);
+  }
+  assert.equal(readConfig(), savedConfig);
   console.log(
-    'Packaged smoke test passed: BP selection, isolated APO output, disabled gain, and persistence after restart.'
+    'Packaged smoke test passed: legacy BP, BP/LP/HP EQ selection and gain editing, isolated IIR output, and persistence after restart.'
   );
 } catch (error) {
   if (driver) {

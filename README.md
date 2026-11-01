@@ -1,19 +1,21 @@
 # AQUA
 
-This fork modernizes AQUA and includes **Band Pass (BP)** filtering. Download the
+This fork modernizes AQUA and includes **Band Pass (BP)** filtering plus
+gain-enabled **BP EQ, LP EQ, and HP EQ** modes (1.3.0 builds). Download the
 `AQUA-Windows-x64` artifact from a successful [Test workflow run](https://github.com/AndreiShenets/AQUA/actions/workflows/test.yml),
 or [build it locally](#development-prerequisites). The [upstream 1.1.1 installer](https://github.com/h39s/AQUA/releases/latest/download/AQUAsetup.exe)
-is the legacy version and does not include BP.
+is the legacy version and does not include BP. The fork's published **1.2.0**
+release includes pass-only BP, but not the new EQ modes.
 
 Welcome to AQUA, a modern platform for audio equalization on Windows. Please note that EqualizerAPO is a prerequisite for our application. Our current features include
 
 - System-wide parametric audio equalization (through [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/))
 - AutoEQ integration (credit to [Jaakko Pasanen](https://github.com/jaakkopasanen/AutoEq/tree/master/results) and [Ian Walton](https://github.com/iwalton3/AutoEq) for their preset results for the Harman, IEF, and IEF with bass targets)
-- Auto Pre-amp Gain to ensure your maximum gain never exceeds 0dB
+- Auto Pre-amp Gain based on the plotted response (up to 30 dB attenuation; not a limiter)
 - Saving/loading equalizer presets
 - Graph visualizer for equalizer settings (between 10 Hz and 20 KHz)
 - Up to 20 filters (+ preamp gain) with adjustable
-  - Filter type (peak, low/high shelf, low/high pass, notch, or **band pass / BP**)
+  - Filter type (peak, low/high shelf, low/high pass, notch, **band pass / BP**, or **BP EQ / LP EQ / HP EQ**)
   - Centre frequency (1 Hz - 20 KHz)
   - Gain (-30dB to 30dB)
   - Quality (0.01 - 100.00)
@@ -29,7 +31,7 @@ remain available. The toolchain and BP fixes documented here belong to this fork
 To get started using AQUA, it only takes two easy steps:
 
 1. Install [EqualizerAPO](https://sourceforge.net/projects/equalizerapo/) if you don't have it currently installed (and make sure you run `configurator.exe` included as a part of EqualizerAPO to install the required drivers for the devices you would like to EQ).
-2. Download and extract `AQUA-Windows-x64` from a successful [workflow run](https://github.com/AndreiShenets/AQUA/actions/workflows/test.yml), then run `AQUA Setup 1.2.0.exe`. Back up your settings first when replacing an existing installation; see [Try BP safely](#try-bp-safely).
+2. Download and extract `AQUA-Windows-x64` from a successful [workflow run](https://github.com/AndreiShenets/AQUA/actions/workflows/test.yml) for the version you want, then run its `AQUA Setup <version>.exe`. Back up your settings first when replacing an existing installation; see [Try filters safely](#try-filters-safely).
 
 ## FAQ
 
@@ -88,7 +90,39 @@ blanket-approved. New dependency versions may need a fresh script review.
 may still have upstream advisories even at their latest releases; do not use
 `npm audit fix --force` to silently downgrade the modern toolchain.
 
-### Try BP safely
+### Gain-enabled pass EQ (1.3.0)
+
+Choose **Band Pass EQ**, **Low Pass EQ**, or **High Pass EQ** in the filter
+dropdown. Each supports frequency, Q, and gain. Existing **Band Pass Filter**,
+**Low Pass Filter**, and **High Pass Filter** remain pass-only, with gain disabled.
+
+Each EQ stage mixes a filtered branch with its original input:
+
+```text
+output = input + (10^(gain_dB / 20) - 1) * pass_filter(input)
+```
+
+- **BP EQ:** gain is the response at the center frequency; both ends stay at 0 dB.
+- **LP EQ:** gain is the low-frequency limit; the high-frequency limit stays at 0 dB.
+- **HP EQ:** gain is the high-frequency limit; the low-frequency limit stays at 0 dB.
+- **0 dB gain:** exact bypass for all three modes. Multiple EQ bands are cascaded;
+  their wet branches are not all mixed with one shared original signal.
+
+LP/HP dry/wet phase interaction can produce peaks and dips near cutoff, especially
+at high Q. These modes are not ordinary shelves, and negative gain does not
+guarantee attenuation at every frequency. The graph includes that phase interaction
+but uses a fixed 96 kHz design rate; APO uses the device's actual sample rate.
+Leave headroom: auto preamp uses sampled graph points and stops at -30 dB, so it
+cannot guarantee clipping prevention with sharp resonances or many boosted bands.
+Exact Poweramp matching is not claimed.
+
+Export uses Equalizer APO's [custom IIR and expression support](https://sourceforge.net/p/equalizerapo/wiki/Configuration%20reference/),
+as in its [sample-rate-aware IIR example](https://github.com/mirror/equalizerapo/blob/master/Setup/config/iir_lowpass.txt).
+It applies to all channels without virtual-channel routing. The design frequency
+is clamped to 0.499 times the device sample rate if necessary. Presets retain the
+new types; older AQUA versions do not support them, so keep a backup before downgrading.
+
+### Try filters safely
 
 To run the unpacked application without changing live presets or APO files:
 
@@ -100,7 +134,8 @@ The sandbox stores settings/presets under `user-data/` and simulated APO output
 under `config/` in that directory. It does **not** change system audio, enable
 case-sensitive directories, or check for updates. `npm run test:smoke` creates
 and cleans up its own hidden sandbox and tests the packaged application through
-ChromeDriver, including BP selection and persistence after restarting.
+ChromeDriver, including legacy BP, all three EQ types, gain edits, generated IIR
+output, and persistence after restarting. It never changes live APO configuration.
 
 In the filter dropdown choose the green **Band Pass Filter** icon. Set its center
 frequency and Q; gain is intentionally disabled. BP attenuates frequencies outside
