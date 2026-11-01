@@ -41,6 +41,9 @@ export enum FilterTypeEnum {
   LPQ = 'LPQ', // Low Pass ["LPQ",False,True]
   HPQ = 'HPQ', // High Pass ["HPQ",False,True]
   BP = 'BP', // Band Pass ["BP",False,True]
+  BP_EQ = 'BP_EQ', // Dry signal plus a gain-controlled band-pass branch
+  LP_EQ = 'LP_EQ', // Dry signal plus a gain-controlled low-pass branch
+  HP_EQ = 'HP_EQ', // Dry signal plus a gain-controlled high-pass branch
   // AP = 'AP', // All Pass ["AP",False,True]
   // BWLP = 'BWLP', // Butterworth Low Pass ["BWLP",False,True]
   // BWHP = 'BWHP', // Butterworth High Pass ["BWHP",False,True]
@@ -58,6 +61,9 @@ export const FilterTypeToLabelMap: Record<FilterTypeEnum, string> = {
   [FilterTypeEnum.LPQ]: 'Low Pass Filter',
   [FilterTypeEnum.HPQ]: 'High Pass Filter',
   [FilterTypeEnum.BP]: 'Band Pass Filter',
+  [FilterTypeEnum.BP_EQ]: 'Band Pass EQ',
+  [FilterTypeEnum.LP_EQ]: 'Low Pass EQ',
+  [FilterTypeEnum.HP_EQ]: 'High Pass EQ',
 };
 
 export const NO_GAIN_FILTER_TYPES = [

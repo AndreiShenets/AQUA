@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import fs from 'fs';
 import path from 'path';
+import { isPassFilterEq, passFilterEqToConfig } from '../common/passFilterEq';
 import {
   getDefaultState,
   IPresetV1,
@@ -45,14 +46,16 @@ export const stateToString = (state: IState) => {
 
   // Using individual filter bands
   output = output.concat(
-    Object.values(state.filters).map(
-      ({ frequency, gain, type, quality }, index) => {
-        const gainParameter = NO_GAIN_FILTER_TYPES.includes(type)
-          ? ''
-          : ` Gain ${gain} dB`;
-        return `Filter${index}: ON ${type} Fc ${frequency} Hz${gainParameter} Q ${quality}`;
+    Object.values(state.filters).map((filter, index) => {
+      if (isPassFilterEq(filter.type)) {
+        return passFilterEqToConfig(filter, index);
       }
-    )
+      const { frequency, gain, type, quality } = filter;
+      const gainParameter = NO_GAIN_FILTER_TYPES.includes(type)
+        ? ''
+        : ` Gain ${gain} dB`;
+      return `Filter${index}: ON ${type} Fc ${frequency} Hz${gainParameter} Q ${quality}`;
+    })
   );
 
   return output.join('\n\r');
