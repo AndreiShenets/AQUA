@@ -27,6 +27,9 @@ import {
 import './styles/PresetsBar.scss';
 import { ErrorDescription } from 'common/errors';
 import { isRestrictedPresetName } from 'common/utils';
+import { PresetImportResult } from 'common/presetImport';
+import PresetImport from './components/PresetImport';
+import { importPreset as importPresetFile } from './utils/equalizerApi';
 import { useAquaContext } from './utils/AquaContext';
 import TextInput from './widgets/TextInput';
 import Button from './widgets/Button';
@@ -63,7 +66,7 @@ const presetReducer: IPresetReducer = (
     case PresetActionEnum.INIT:
       return action.presetNames.sort();
     case PresetActionEnum.CREATE:
-      return [...presetNames, action.presetName].sort();
+      return [...new Set([...presetNames, action.presetName])].sort();
     case PresetActionEnum.DELETE:
       return presetNames.filter((name) => name !== action.presetName);
     case PresetActionEnum.RENAME:
@@ -81,6 +84,10 @@ interface IPresetsBarProps {
   fetchPresets: () => Promise<string[]>;
   loadPreset: (presetName: string) => Promise<void>;
   savePreset: (presetName: string) => Promise<void>;
+  importPreset?: (
+    fileName: string,
+    content: string
+  ) => Promise<PresetImportResult>;
   renamePreset: (oldName: string, newName: string) => Promise<void>;
   deletePreset: (presetName: string) => Promise<void>;
 }
@@ -89,6 +96,7 @@ const PresetsBar = ({
   fetchPresets,
   loadPreset,
   savePreset,
+  importPreset = importPresetFile,
   renamePreset,
   deletePreset,
 }: IPresetsBarProps) => {
@@ -98,6 +106,10 @@ const PresetsBar = ({
   const [presetName, setPresetName] = useState<string>('');
   const [newPresetNameError, setNewPresetNameError] = useState<string>('');
   const [presetNames, dispatchPresetNames] = useReducer(presetReducer, []);
+
+  const handleImported = useCallback((name: string) => {
+    dispatchPresetNames({ type: PresetActionEnum.CREATE, presetName: name });
+  }, []);
 
   const isExistingPresetSelected = useMemo(
     () => presetNames.some((n) => n === presetName),
@@ -308,6 +320,11 @@ const PresetsBar = ({
   return (
     <div className="presets-bar">
       <h4>Preset Menu</h4>
+      <PresetImport
+        importPreset={importPreset}
+        onImported={handleImported}
+        isDisabled={!!globalError}
+      />
       <div className="row">
         <div className="preset-name">Name:&nbsp;</div>
         <TextInput
