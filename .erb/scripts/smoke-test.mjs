@@ -112,7 +112,9 @@ try {
     const input = await driver.$(`[aria-label="${frequency}-gain-number"]`);
     await driver.waitUntil(() => input.isEnabled(), { timeout: 10000 });
     // Native input events exercise the real renderer handlers while the sandbox
-    // window stays hidden. Blur only after React has processed the input.
+    // window stays hidden. Send focusout after React processes input: native
+    // focus/blur need not fire for a hidden Electron window. React maps this
+    // bubbling event to NumberInput's onBlur submission handler.
     await driver.execute(
       (name, value) => {
         const field = document.querySelector(
@@ -129,7 +131,9 @@ try {
       gain
     );
     await driver.execute((name) => {
-      document.querySelector(`[aria-label="${name}-gain-number"]`).blur();
+      document
+        .querySelector(`[aria-label="${name}-gain-number"]`)
+        .dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
     }, frequency);
     await driver.waitUntil(
       () => {
