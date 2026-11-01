@@ -37,8 +37,10 @@ To get started using AQUA, it only takes two easy steps:
 
 ### Import AQUA presets
 
-Drop one or more AQUA preset files onto the drop area in **Preset Menu**, or use
-its file picker. Both `.json` and AQUA's extensionless preset files are supported.
+In **1.4.0**, drop one or more AQUA preset files directly onto the list in
+**Preset Menu**, or click **Open** beside **Load selected preset**. Import results
+and rejection messages appear below those buttons; there is no separate import
+bar. Both `.json` and AQUA's extensionless preset files are supported.
 The filename becomes the preset name (a final `.json` is removed).
 
 Valid presets are saved under `%APPDATA%\aqua\presets` and appear in the menu

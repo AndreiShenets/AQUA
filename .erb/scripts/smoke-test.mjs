@@ -187,22 +187,19 @@ try {
     transfer.items.add(
       new File([content], 'Smoke imported.json', { type: 'application/json' })
     );
-    document
-      .querySelector('[aria-label="Preset import"]')
-      .dispatchEvent(
-        new DragEvent('drop', {
-          bubbles: true,
-          cancelable: true,
-          dataTransfer: transfer,
-        })
-      );
+    document.querySelector('[aria-label="preset-items"]').dispatchEvent(
+      new DragEvent('drop', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+      })
+    );
   }, JSON.stringify(importedPreset));
   await driver.waitUntil(
     () =>
       driver.execute(() => {
-        const messages = document.querySelector(
-          '.preset-import-results'
-        ).textContent;
+        const messages =
+          document.querySelector('.preset-import-results')?.textContent || '';
         return (
           messages.includes('Imported as') &&
           messages.includes('Preamp must be') &&
@@ -215,6 +212,37 @@ try {
     }
   );
   await driver.$('[aria-label="Smoke imported"]').waitForExist();
+  const compactLayout = await driver.execute(() => {
+    const list = document.querySelector('[aria-label="preset-items"]');
+    const load = document
+      .querySelector('[aria-label="Load selected preset"]')
+      .getBoundingClientRect();
+    const open = document
+      .querySelector('[aria-label="Open preset files"]')
+      .getBoundingClientRect();
+    const messages = document
+      .querySelector('.preset-import-results')
+      .getBoundingClientRect();
+    return {
+      listIsDropTarget: document
+        .querySelector('[aria-label="Preset import"]')
+        .contains(list),
+      pickerHidden:
+        getComputedStyle(
+          document.querySelector('[aria-label="Import AQUA preset files"]')
+        ).display === 'none',
+      openBesideLoad:
+        open.left >= load.right && Math.abs(open.top - load.top) < 1,
+      messagesBelowButtons: messages.top >= Math.max(open.bottom, load.bottom),
+      noTopImportBar: !document.body.textContent.includes(
+        'Drop AQUA preset files here, or choose files'
+      ),
+    };
+  });
+  assert.ok(
+    Object.values(compactLayout).every(Boolean),
+    JSON.stringify(compactLayout)
+  );
   assert.deepEqual(
     JSON.parse(
       fs.readFileSync(

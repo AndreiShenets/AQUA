@@ -1,4 +1,4 @@
-import { DragEvent, useEffect, useRef, useState } from 'react';
+import { DragEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import {
   MAX_PRESET_IMPORT_BYTES,
   MAX_PRESET_IMPORT_FILES,
@@ -12,6 +12,8 @@ interface IPresetImportProps {
   ) => Promise<PresetImportResult>;
   onImported: (presetName: string) => void;
   isDisabled: boolean;
+  children: ReactNode;
+  loadButton: ReactNode;
 }
 
 const readText = (file: File) =>
@@ -27,6 +29,8 @@ const PresetImport = ({
   importPreset,
   onImported,
   isDisabled,
+  children,
+  loadButton,
 }: IPresetImportProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -35,6 +39,7 @@ const PresetImport = ({
   >([]);
   const busy = useRef(false);
   const dragDepth = useRef(0);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Dropping elsewhere must not navigate Electron away from the application.
@@ -109,64 +114,83 @@ const PresetImport = ({
   };
 
   return (
-    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- The nested native file picker provides keyboard access to the same import action.
-    <section
-      className={`preset-import${isDragging ? ' dragging' : ''}`}
-      aria-label="Preset import"
-      aria-busy={isImporting}
-      onDragEnter={(event) => {
-        if (event.dataTransfer.types.includes('Files')) {
-          event.preventDefault();
-          dragDepth.current += 1;
-          if (!isDisabled && !busy.current) {
-            setIsDragging(true);
+    <>
+      {/* The Open button provides keyboard access to the same import action. */}
+      {/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
+      <section
+        className={`preset-drop-target${isDragging ? ' dragging' : ''}`}
+        aria-label="Preset import"
+        aria-busy={isImporting}
+        onDragEnter={(event) => {
+          if (event.dataTransfer.types.includes('Files')) {
+            event.preventDefault();
+            dragDepth.current += 1;
+            if (!isDisabled && !busy.current) {
+              setIsDragging(true);
+            }
           }
-        }
-      }}
-      onDragLeave={() => {
-        dragDepth.current = Math.max(0, dragDepth.current - 1);
-        if (dragDepth.current === 0) {
-          setIsDragging(false);
-        }
-      }}
-      onDragOver={(event) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect =
-          isDisabled || isImporting ? 'none' : 'copy';
-      }}
-      onDrop={handleDrop}
-    >
-      <label>
-        Drop AQUA preset files here, or choose files
-        <input
-          type="file"
-          multiple
-          aria-label="Import AQUA preset files"
-          disabled={isDisabled || isImporting}
-          onChange={(event) => {
-            const files = Array.from(event.currentTarget.files ?? []);
-            event.currentTarget.value = '';
-            void importFiles(files);
-          }}
-        />
-      </label>
-      <output className="preset-import-results">
-        {isImporting && <p>Importing presets…</p>}
-        {results.length > 0 && (
-          <ul>
-            {results.map(({ fileName, message, failed }, index) => (
-              <li
-                key={`${index}-${fileName}`}
-                className={failed ? 'import-error' : ''}
-              >
-                {fileName && <strong>{fileName}: </strong>}
-                {message}
-              </li>
-            ))}
-          </ul>
+        }}
+        onDragLeave={() => {
+          dragDepth.current = Math.max(0, dragDepth.current - 1);
+          if (dragDepth.current === 0) {
+            setIsDragging(false);
+          }
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.dataTransfer.dropEffect =
+            isDisabled || isImporting ? 'none' : 'copy';
+        }}
+        onDrop={handleDrop}
+      >
+        {children}
+      </section>
+      <div className="preset-import-controls">
+        <div className="preset-load-actions">
+          {loadButton}
+          <button
+            type="button"
+            className="button small preset-open"
+            aria-label="Open preset files"
+            disabled={isDisabled || isImporting}
+            onClick={() => fileInput.current?.click()}
+          >
+            Open
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            hidden
+            multiple
+            aria-label="Import AQUA preset files"
+            disabled={isDisabled || isImporting}
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = '';
+              void importFiles(files);
+            }}
+          />
+        </div>
+        {(isImporting || results.length > 0) && (
+          <output className="preset-import-results">
+            {isImporting && <p>Importing presets…</p>}
+            {results.length > 0 && (
+              <ul>
+                {results.map(({ fileName, message, failed }, index) => (
+                  <li
+                    key={`${index}-${fileName}`}
+                    className={failed ? 'import-error' : ''}
+                  >
+                    {fileName && <strong>{fileName}: </strong>}
+                    {message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </output>
         )}
-      </output>
-    </section>
+      </div>
+    </>
   );
 };
 

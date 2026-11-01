@@ -58,7 +58,7 @@ const renderMenu = () =>
     </AquaProviderWrapper>
   );
 const drop = (files: File[]) =>
-  fireEvent.drop(screen.getByRole('region', { name: 'Preset import' }), {
+  fireEvent.drop(screen.getByLabelText('preset-items'), {
     dataTransfer: { files, types: ['Files'] },
   });
 
@@ -107,15 +107,51 @@ it('imports valid files from a mixed batch and explains each rejection', async (
 it('offers a keyboard-accessible file picker for the same import', async () => {
   const { user } = renderMenu();
   const picker = screen.getByLabelText('Import AQUA preset files');
+  const click = jest.spyOn(picker, 'click');
 
-  await user.upload(
-    picker,
-    new File([content], 'Chosen.json', { type: 'application/json' })
-  );
+  screen.getByRole('button', { name: 'Open preset files' }).focus();
+  await user.keyboard('{Enter}');
+  expect(click).toHaveBeenCalledTimes(1);
+  fireEvent.change(picker, {
+    target: {
+      files: [new File([content], 'Chosen.json', { type: 'application/json' })],
+    },
+  });
 
   await screen.findByLabelText('Chosen');
   expect(fetchPreset('Chosen', directory)).toEqual(preset);
   expect(picker).toHaveValue('');
+});
+
+it('uses the list as the drop target, with Open beside Load and no top import bar', () => {
+  renderMenu();
+  const target = screen.getByRole('region', { name: 'Preset import' });
+  const load = screen.getByRole('button', { name: 'Load selected preset' });
+  const open = screen.getByRole('button', { name: 'Open preset files' });
+
+  expect(target).toContainElement(screen.getByLabelText('preset-items'));
+  expect(target).not.toContainElement(open);
+  expect(open.parentElement).toBe(load.parentElement);
+  expect(load.nextElementSibling).toBe(open);
+  expect(open).toBeEnabled();
+  expect(screen.getByLabelText('Import AQUA preset files')).not.toBeVisible();
+  expect(
+    screen.queryByText('Drop AQUA preset files here, or choose files')
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+it('places unsupported-file messages below the Load/Open row, outside the list', async () => {
+  renderMenu();
+  drop([new File(['not an AQUA preset'], 'Unsupported.txt')]);
+  await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
+  const messages = screen.getByRole('status');
+  const load = screen.getByRole('button', { name: 'Load selected preset' });
+
+  expect(load.parentElement?.nextElementSibling).toBe(messages);
+  expect(
+    screen.getByRole('region', { name: 'Preset import' })
+  ).not.toContainElement(messages);
 });
 
 it('rejects oversized files without reading/sending them and continues the batch', async () => {
@@ -160,6 +196,9 @@ it('does not start a second import while the first is pending', async () => {
   drop([new File([content], 'First.json')]);
   await waitFor(() => expect(importPreset).toHaveBeenCalledTimes(1));
   expect(screen.getByLabelText('Import AQUA preset files')).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Open preset files' })
+  ).toBeDisabled();
   drop([new File([content], 'Second.json')]);
   complete({ presetName: 'First' });
 
@@ -194,10 +233,18 @@ it('disables both drop and file picking when requested', () => {
       importPreset={importPreset}
       onImported={jest.fn()}
       isDisabled
-    />
+      loadButton={<button type="button">Load</button>}
+    >
+      <ul aria-label="preset-items">
+        <li>Existing</li>
+      </ul>
+    </PresetImport>
   );
   drop([new File([content], 'Disabled.json')]);
 
   expect(screen.getByLabelText('Import AQUA preset files')).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Open preset files' })
+  ).toBeDisabled();
   expect(importPreset).not.toHaveBeenCalled();
 });

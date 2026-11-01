@@ -320,11 +320,6 @@ const PresetsBar = ({
   return (
     <div className="presets-bar">
       <h4>Preset Menu</h4>
-      <PresetImport
-        importPreset={importPreset}
-        onImported={handleImported}
-        isDisabled={!!globalError}
-      />
       <div className="row">
         <div className="preset-name">Name:&nbsp;</div>
         <TextInput
@@ -345,23 +340,31 @@ const PresetsBar = ({
       >
         Save current settings to preset
       </Button>
-      <List
-        name="preset"
-        options={options}
-        itemClassName="preset-list-item"
-        value={presetName}
-        handleChange={handleChangeSelectedPreset}
+      <PresetImport
+        importPreset={importPreset}
+        onImported={handleImported}
         isDisabled={!!globalError}
-        emptyOptionsPlaceholder="No presets found."
-      />
-      <Button
-        ariaLabel="Load selected preset"
-        className="small"
-        isDisabled={!!globalError || !isExistingPresetSelected}
-        handleChange={handleLoadPreset}
+        loadButton={
+          <Button
+            ariaLabel="Load selected preset"
+            className="small"
+            isDisabled={!!globalError || !isExistingPresetSelected}
+            handleChange={handleLoadPreset}
+          >
+            Load selected preset
+          </Button>
+        }
       >
-        Load selected preset
-      </Button>
+        <List
+          name="preset"
+          options={options}
+          itemClassName="preset-list-item"
+          value={presetName}
+          handleChange={handleChangeSelectedPreset}
+          isDisabled={!!globalError}
+          emptyOptionsPlaceholder="No presets found."
+        />
+      </PresetImport>
     </div>
   );
 };

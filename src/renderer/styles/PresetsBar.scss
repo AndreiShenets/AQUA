@@ -25,7 +25,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
   // Spacing of the contents
   display: grid;
-  grid-template-rows: repeat(4, min-content) minmax(0px, 1fr) min-content;
+  grid-template-rows: repeat(3, min-content) minmax(0px, 1fr) min-content;
   padding: $spacing-m;
   gap: $spacing-s;
   justify-items: stretch;
@@ -48,43 +48,55 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     padding-top: $spacing-xs;
   }
 
-  .preset-import {
-    border: 1px dashed $primary-lighter;
-    border-radius: $spacing-xs;
-    padding: $spacing-s;
+  .preset-drop-target {
     min-width: 0;
+    min-height: 0;
+    display: grid;
+
+    > .list-wrapper {
+      min-height: 0;
+    }
+
+    &.dragging > .list-wrapper {
+      border-color: $secondary-light;
+      box-shadow: 0 0 0 1px $secondary-light;
+    }
+  }
+
+  .preset-load-actions {
+    display: grid;
+    grid-template-columns: minmax(0px, 1fr) max-content;
+    gap: $spacing-s;
+    align-items: start;
+  }
+
+  .preset-open {
+    border: 0;
+    font-family: inherit;
+  }
+
+  .preset-import-controls {
+    min-width: 0;
+  }
+
+  .preset-import-results {
+    display: block;
+    max-height: 90px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
     font-size: 12px;
 
-    &.dragging {
-      border-color: $secondary-light;
-      background: $primary-dark;
+    p,
+    ul {
+      margin: $spacing-xs 0 0;
     }
 
-    input {
-      display: block;
-      width: 100%;
-      margin-top: $spacing-xs;
-      color: inherit;
+    ul {
+      padding-left: $spacing-m;
     }
 
-    .preset-import-results {
-      display: block;
-      max-height: 90px;
-      overflow-y: auto;
-      overflow-wrap: anywhere;
-
-      p,
-      ul {
-        margin: $spacing-xs 0 0;
-      }
-
-      ul {
-        padding-left: $spacing-m;
-      }
-
-      .import-error {
-        color: $red;
-      }
+    .import-error {
+      color: $red;
     }
   }
 
