@@ -160,6 +160,121 @@ try {
   assert.doesNotMatch(readConfig(), /ON (BP_EQ|LP_EQ|HP_EQ)/);
   const savedConfig = readConfig();
 
+  const importedPreset = {
+    preAmp: -6,
+    filters: {
+      imported1: {
+        id: 'imported1',
+        frequency: 3000,
+        gain: 6,
+        quality: 0.707,
+        type: 'HP_EQ',
+      },
+    },
+  };
+  const savedState = fs.readFileSync(
+    path.join(directory, 'user-data/state.txt'),
+    'utf8'
+  );
+  await driver.execute((content) => {
+    const transfer = new DataTransfer();
+    transfer.items.add(
+      new File([content], 'Smoke imported.json', { type: 'application/json' })
+    );
+    transfer.items.add(
+      new File(['{}'], 'Invalid preset.json', { type: 'application/json' })
+    );
+    transfer.items.add(
+      new File([content], 'Smoke imported.json', { type: 'application/json' })
+    );
+    document.querySelector('[aria-label="preset-items"]').dispatchEvent(
+      new DragEvent('drop', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+      })
+    );
+  }, JSON.stringify(importedPreset));
+  await driver.waitUntil(
+    () =>
+      driver.execute(() => {
+        const messages =
+          document.querySelector('.preset-import-results')?.textContent || '';
+        return (
+          messages.includes('Imported as') &&
+          messages.includes('Preamp must be') &&
+          messages.includes('already exists')
+        );
+      }),
+    {
+      timeout: 10000,
+      timeoutMsg: 'Dropped presets were not imported/rejected correctly',
+    }
+  );
+  await driver.$('[aria-label="Smoke imported"]').waitForExist();
+  const compactLayout = await driver.execute(() => {
+    const list = document.querySelector('[aria-label="preset-items"]');
+    const load = document
+      .querySelector('[aria-label="Load selected preset"]')
+      .getBoundingClientRect();
+    const open = document
+      .querySelector('[aria-label="Open preset files"]')
+      .getBoundingClientRect();
+    const messages = document
+      .querySelector('.preset-import-results')
+      .getBoundingClientRect();
+    return {
+      listIsDropTarget: document
+        .querySelector('[aria-label="Preset import"]')
+        .contains(list),
+      pickerHidden:
+        getComputedStyle(
+          document.querySelector('[aria-label="Import AQUA preset files"]')
+        ).display === 'none',
+      openBesideLoad:
+        open.left >= load.right && Math.abs(open.top - load.top) < 1,
+      messagesBelowButtons: messages.top >= Math.max(open.bottom, load.bottom),
+      noTopImportBar: !document.body.textContent.includes(
+        'Drop AQUA preset files here, or choose files'
+      ),
+    };
+  });
+  assert.ok(
+    Object.values(compactLayout).every(Boolean),
+    JSON.stringify(compactLayout)
+  );
+  assert.deepEqual(
+    JSON.parse(
+      fs.readFileSync(
+        path.join(directory, 'user-data/presets/Smoke imported'),
+        'utf8'
+      )
+    ),
+    importedPreset
+  );
+  assert.equal(
+    fs.existsSync(path.join(directory, 'user-data/presets/Invalid preset')),
+    false
+  );
+  assert.equal(
+    fs.readFileSync(path.join(directory, 'user-data/state.txt'), 'utf8'),
+    savedState
+  );
+  assert.equal(readConfig(), savedConfig);
+
+  await driver.execute(() => {
+    document.querySelector('[aria-label="Smoke imported"]').click();
+  });
+  await driver.waitUntil(
+    () =>
+      driver.execute(() => !document.querySelector('.preset-import-results')),
+    {
+      timeout: 10000,
+      timeoutMsg: 'Preset selection did not dismiss import messages',
+    }
+  );
+  assert.equal(readConfig(), savedConfig);
+
   await driver.deleteSession();
   driver = undefined;
   driver = await launch();
@@ -167,6 +282,7 @@ try {
   await driver
     .$('[aria-label="1000-filter-type"]')
     .waitForExist({ timeout: 30000 });
+  await driver.$('[aria-label="Smoke imported"]').waitForExist();
   await driver
     .$('[aria-label="1000-filter-type"] > svg:first-child title')
     .waitForExist();
@@ -193,7 +309,7 @@ try {
   }
   assert.equal(readConfig(), savedConfig);
   console.log(
-    'Packaged smoke test passed: legacy BP, BP/LP/HP EQ selection and gain editing, isolated IIR output, and persistence after restart.'
+    'Packaged smoke test passed: legacy BP, BP/LP/HP EQ, preset drop import, invalid/duplicate rejection, message dismissal on selection, unchanged active settings, and persistence after restart.'
   );
 } catch (error) {
   if (driver) {

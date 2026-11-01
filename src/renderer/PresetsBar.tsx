@@ -27,6 +27,9 @@ import {
 import './styles/PresetsBar.scss';
 import { ErrorDescription } from 'common/errors';
 import { isRestrictedPresetName } from 'common/utils';
+import { PresetImportResult } from 'common/presetImport';
+import PresetImport from './components/PresetImport';
+import { importPreset as importPresetFile } from './utils/equalizerApi';
 import { useAquaContext } from './utils/AquaContext';
 import TextInput from './widgets/TextInput';
 import Button from './widgets/Button';
@@ -63,7 +66,7 @@ const presetReducer: IPresetReducer = (
     case PresetActionEnum.INIT:
       return action.presetNames.sort();
     case PresetActionEnum.CREATE:
-      return [...presetNames, action.presetName].sort();
+      return [...new Set([...presetNames, action.presetName])].sort();
     case PresetActionEnum.DELETE:
       return presetNames.filter((name) => name !== action.presetName);
     case PresetActionEnum.RENAME:
@@ -81,6 +84,10 @@ interface IPresetsBarProps {
   fetchPresets: () => Promise<string[]>;
   loadPreset: (presetName: string) => Promise<void>;
   savePreset: (presetName: string) => Promise<void>;
+  importPreset?: (
+    fileName: string,
+    content: string
+  ) => Promise<PresetImportResult>;
   renamePreset: (oldName: string, newName: string) => Promise<void>;
   deletePreset: (presetName: string) => Promise<void>;
 }
@@ -89,6 +96,7 @@ const PresetsBar = ({
   fetchPresets,
   loadPreset,
   savePreset,
+  importPreset = importPresetFile,
   renamePreset,
   deletePreset,
 }: IPresetsBarProps) => {
@@ -98,6 +106,14 @@ const PresetsBar = ({
   const [presetName, setPresetName] = useState<string>('');
   const [newPresetNameError, setNewPresetNameError] = useState<string>('');
   const [presetNames, dispatchPresetNames] = useReducer(presetReducer, []);
+  const [importMessageRevision, dismissImportMessages] = useReducer(
+    (revision: number) => revision + 1,
+    0
+  );
+
+  const handleImported = useCallback((name: string) => {
+    dispatchPresetNames({ type: PresetActionEnum.CREATE, presetName: name });
+  }, []);
 
   const isExistingPresetSelected = useMemo(
     () => presetNames.some((n) => n === presetName),
@@ -128,6 +144,7 @@ const PresetsBar = ({
       return;
     }
 
+    dismissImportMessages();
     try {
       await savePreset(presetName);
 
@@ -152,6 +169,7 @@ const PresetsBar = ({
   // Loading audio settings from an existing preset
   const handleLoadPreset = async () => {
     if (isExistingPresetSelected) {
+      dismissImportMessages();
       try {
         await loadPreset(presetName);
         performHealthCheck();
@@ -225,6 +243,7 @@ const PresetsBar = ({
   );
 
   const handleChangeNewPresetName = (newValue: string) => {
+    dismissImportMessages();
     setPresetName(newValue);
 
     // Validate new preset name and update error message accordingly
@@ -234,6 +253,7 @@ const PresetsBar = ({
 
   // Changing the selected preset in the UI
   const handleChangeSelectedPreset = (newValue: string, e?: MouseEvent) => {
+    dismissImportMessages();
     setPresetName(newValue);
 
     // Load preset when it is double clicked
@@ -245,6 +265,7 @@ const PresetsBar = ({
   // Deleting a preset
   const handleDeletePreset = useCallback(
     (deletedValue: string) => async () => {
+      dismissImportMessages();
       try {
         await deletePreset(deletedValue);
         dispatchPresetNames({
@@ -264,6 +285,7 @@ const PresetsBar = ({
   // Renaming an existing preset
   const handleRenameExistingPresetName = useCallback(
     (oldName: string) => async (newName: string) => {
+      dismissImportMessages();
       try {
         await renamePreset(oldName, newName);
         dispatchPresetNames({
@@ -328,23 +350,32 @@ const PresetsBar = ({
       >
         Save current settings to preset
       </Button>
-      <List
-        name="preset"
-        options={options}
-        itemClassName="preset-list-item"
-        value={presetName}
-        handleChange={handleChangeSelectedPreset}
+      <PresetImport
+        importPreset={importPreset}
+        onImported={handleImported}
+        messageRevision={importMessageRevision}
         isDisabled={!!globalError}
-        emptyOptionsPlaceholder="No presets found."
-      />
-      <Button
-        ariaLabel="Load selected preset"
-        className="small"
-        isDisabled={!!globalError || !isExistingPresetSelected}
-        handleChange={handleLoadPreset}
+        loadButton={
+          <Button
+            ariaLabel="Load selected preset"
+            className="small"
+            isDisabled={!!globalError || !isExistingPresetSelected}
+            handleChange={handleLoadPreset}
+          >
+            Load selected preset
+          </Button>
+        }
       >
-        Load selected preset
-      </Button>
+        <List
+          name="preset"
+          options={options}
+          itemClassName="preset-list-item"
+          value={presetName}
+          handleChange={handleChangeSelectedPreset}
+          isDisabled={!!globalError}
+          emptyOptionsPlaceholder="No presets found."
+        />
+      </PresetImport>
     </div>
   );
 };

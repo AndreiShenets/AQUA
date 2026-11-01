@@ -49,6 +49,7 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { getConfigPath, isEqualizerAPOInstalled } from './registry';
 import { isSandbox } from './sandbox';
+import { importPreset } from './importPreset';
 import ChannelEnum from '../common/channels';
 import {
   FilterTypeEnum,
@@ -344,6 +345,15 @@ ipcMain.on(ChannelEnum.RENAME_PRESET, async (event, arg) => {
   } catch (e) {
     handleError(event, channel, ErrorCode.PRESET_FILE_ERROR);
   }
+});
+
+ipcMain.on(ChannelEnum.IMPORT_PRESET, (event, arg: unknown) => {
+  const [fileName, content] = Array.isArray(arg) ? arg : [];
+  // Import only writes a new preset. Do not call handleUpdate: importing must
+  // not select the preset, change current state, or touch live APO output.
+  event.reply(ChannelEnum.IMPORT_PRESET, {
+    result: importPreset(fileName, content, presetPath),
+  });
 });
 
 ipcMain.on(ChannelEnum.GET_PRESET_FILE_LIST, async (event) => {

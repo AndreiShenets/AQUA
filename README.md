@@ -35,6 +35,32 @@ To get started using AQUA, it only takes two easy steps:
 
 ## FAQ
 
+### Import AQUA presets
+
+In **1.4.0**, drop one or more AQUA preset files directly onto the list in
+**Preset Menu**, or click **Open** beside **Load selected preset**. Import results
+and rejection messages appear below those buttons; there is no separate import
+bar. Messages clear when you change the preset selection/name, load, save, remove,
+or rename a preset. Both `.json` and AQUA's extensionless preset files are supported.
+The filename becomes the preset name (a final `.json` is removed).
+
+Valid presets are saved under `%APPDATA%\aqua\presets` and appear in the menu
+immediately. Importing does **not** select a preset or change the active EQ/APO
+configuration; select it and use **Load selected preset** when ready.
+
+- Current filter-map and legacy filter-array presets are supported. AQUA state
+  JSON can also be imported, but only its preamp and filters are retained.
+- JSON structure, supported types, finite numeric values, frequency/gain/Q bounds,
+  1–20 filters, filter IDs, and safe filenames are checked before saving.
+- Existing names, including case-only matches, are rejected without overwriting.
+  Rename the source file to import a separate copy.
+- Each file gets an import result. Invalid files are rejected; other valid files
+  in the same batch can still be imported. Limit: 20 files per batch, 256 KiB each.
+- Poweramp exports and Equalizer APO text configurations are **not** AQUA preset
+  files; convert them first. Merely renaming a file to `.json` does not convert it.
+
+### Case-sensitive preset names
+
 By default, the Windows file system does not support case sensitive file names (i.e. you cannot have files/folders named `AQUA` and `aqua` in the same directory).
 
 - On Windows 11, AQUA is able to enable case sensitivity specifically for our `presets` folder so users can save presets with case-sensitive names.
@@ -135,7 +161,8 @@ under `config/` in that directory. It does **not** change system audio, enable
 case-sensitive directories, or check for updates. `npm run test:smoke` creates
 and cleans up its own hidden sandbox and tests the packaged application through
 ChromeDriver, including legacy BP, all three EQ types, gain edits, generated IIR
-output, and persistence after restarting. It never changes live APO configuration.
+output, drop import with invalid/duplicate rejection, unchanged active settings,
+and persistence after restarting. It never changes live APO configuration.
 
 In the filter dropdown choose the green **Band Pass Filter** icon. Set its center
 frequency and Q; gain is intentionally disabled. BP attenuates frequencies outside

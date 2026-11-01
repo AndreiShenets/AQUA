@@ -1,0 +1,357 @@
+import '@testing-library/jest-dom';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { FilterTypeEnum, getDefaultFilterWithId } from 'common/constants';
+import {
+  MAX_PRESET_IMPORT_BYTES,
+  PresetImportResult,
+} from 'common/presetImport';
+import { fetchPreset } from 'main/flush';
+import { importPreset as persistImport } from 'main/importPreset';
+import PresetsBar from 'renderer/PresetsBar';
+import PresetImport from 'renderer/components/PresetImport';
+import { AquaProviderWrapper } from 'renderer/utils/AquaContext';
+import defaultAquaContext from '../utils/mockAquaProvider';
+import { setup } from '../utils/userEventUtils';
+
+const filter = {
+  ...getDefaultFilterWithId(),
+  type: FilterTypeEnum.BP_EQ,
+  gain: 6,
+};
+const preset = { preAmp: -6, filters: { [filter.id]: filter } };
+const content = JSON.stringify(preset);
+let directory: string;
+let importPreset: jest.Mock;
+const loadPreset = jest.fn();
+const savePreset = jest.fn();
+const fetchPresets = jest.fn(async () => ['Existing']);
+const renamePreset = jest.fn();
+const deletePreset = jest.fn();
+
+beforeEach(() => {
+  directory = fs.mkdtempSync(path.join(os.tmpdir(), 'aqua-drop-'));
+  fs.writeFileSync(path.join(directory, 'Existing'), 'do not overwrite');
+  importPreset = jest.fn(async (name: string, text: string) =>
+    persistImport(name, text, directory)
+  );
+  loadPreset.mockClear();
+  savePreset.mockClear();
+  renamePreset.mockClear();
+  deletePreset.mockClear();
+});
+afterEach(() => {
+  fs.rmSync(directory, { recursive: true, force: true });
+});
+
+const renderMenu = () =>
+  setup(
+    <AquaProviderWrapper value={defaultAquaContext}>
+      <PresetsBar
+        fetchPresets={fetchPresets}
+        loadPreset={loadPreset}
+        savePreset={savePreset}
+        renamePreset={renamePreset}
+        deletePreset={deletePreset}
+        importPreset={importPreset}
+      />
+    </AquaProviderWrapper>
+  );
+const drop = (files: File[]) =>
+  fireEvent.drop(screen.getByLabelText('preset-items'), {
+    dataTransfer: { files, types: ['Files'] },
+  });
+
+it('imports a dropped file through actual validation/persistence and refreshes the menu without loading it', async () => {
+  const { user } = renderMenu();
+  await user.click(await screen.findByLabelText('Existing'));
+
+  expect(drop([new File([content], 'Imported.json')])).toBe(false);
+  await screen.findByText('Imported as “Imported”.');
+
+  expect(await screen.findByLabelText('Imported')).toBeInTheDocument();
+  expect(fetchPreset('Imported', directory)).toEqual(preset);
+  expect(screen.getByLabelText('Preset Name')).toHaveValue('Existing');
+  expect(loadPreset).not.toHaveBeenCalled();
+  expect(savePreset).not.toHaveBeenCalled();
+  expect(fs.readFileSync(path.join(directory, 'Existing'), 'utf8')).toBe(
+    'do not overwrite'
+  );
+});
+
+it('imports valid files from a mixed batch and explains each rejection', async () => {
+  renderMenu();
+  drop([
+    new File(['broken JSON'], 'Broken.json'),
+    new File([content], 'Good'),
+    new File([content], 'Existing.json'),
+    new File([content], 'Other.json'),
+  ]);
+
+  await screen.findByText('Imported as “Other”.');
+  expect(
+    screen.getByText('Invalid JSON. Drop an AQUA preset file.')
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/A preset with this name already exists/)
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText('Good')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Broken')).not.toBeInTheDocument();
+  expect(fs.readdirSync(directory).sort()).toEqual([
+    'Existing',
+    'Good',
+    'Other',
+  ]);
+});
+
+it('offers a keyboard-accessible file picker for the same import', async () => {
+  const { user } = renderMenu();
+  const picker = screen.getByLabelText('Import AQUA preset files');
+  const click = jest.spyOn(picker, 'click');
+
+  screen.getByRole('button', { name: 'Open preset files' }).focus();
+  await user.keyboard('{Enter}');
+  expect(click).toHaveBeenCalledTimes(1);
+  fireEvent.change(picker, {
+    target: {
+      files: [new File([content], 'Chosen.json', { type: 'application/json' })],
+    },
+  });
+
+  await screen.findByLabelText('Chosen');
+  expect(fetchPreset('Chosen', directory)).toEqual(preset);
+  expect(picker).toHaveValue('');
+});
+
+it('uses the list as the drop target, with Open beside Load and no top import bar', () => {
+  renderMenu();
+  const target = screen.getByRole('region', { name: 'Preset import' });
+  const load = screen.getByRole('button', { name: 'Load selected preset' });
+  const open = screen.getByRole('button', { name: 'Open preset files' });
+
+  expect(target).toContainElement(screen.getByLabelText('preset-items'));
+  expect(target).not.toContainElement(open);
+  expect(open.parentElement).toBe(load.parentElement);
+  expect(load.nextElementSibling).toBe(open);
+  expect(open).toBeEnabled();
+  expect(screen.getByLabelText('Import AQUA preset files')).not.toBeVisible();
+  expect(
+    screen.queryByText('Drop AQUA preset files here, or choose files')
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+it('places unsupported-file messages below the Load/Open row, outside the list', async () => {
+  renderMenu();
+  drop([new File(['not an AQUA preset'], 'Unsupported.txt')]);
+  await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
+  const messages = screen.getByRole('status');
+  const load = screen.getByRole('button', { name: 'Load selected preset' });
+
+  expect(load.parentElement?.nextElementSibling).toBe(messages);
+  expect(
+    screen.getByRole('region', { name: 'Preset import' })
+  ).not.toContainElement(messages);
+});
+
+it.each(['selection', 'name change', 'load', 'save', 'remove', 'rename'])(
+  'dismisses import messages on preset %s',
+  async (action) => {
+    fetchPresets.mockResolvedValueOnce(['Existing', 'Second']);
+    const { user } = renderMenu();
+    await user.click(await screen.findByLabelText('Existing'));
+    if (action === 'rename') {
+      await user.click(
+        within(screen.getByLabelText('Existing')).getByLabelText('Edit Icon')
+      );
+    }
+    drop([new File(['not JSON'], 'Unsupported.txt')]);
+    await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
+
+    switch (action) {
+      case 'selection':
+        await user.click(screen.getByLabelText('Second'));
+        break;
+      case 'name change':
+        fireEvent.change(screen.getByLabelText('Preset Name'), {
+          target: { value: 'New name' },
+        });
+        break;
+      case 'load':
+        await user.click(
+          screen.getByRole('button', { name: 'Load selected preset' })
+        );
+        break;
+      case 'save':
+        await user.click(
+          screen.getByRole('button', { name: 'Save settings to preset' })
+        );
+        break;
+      case 'remove':
+        await user.click(
+          within(screen.getByLabelText('Existing')).getByLabelText(
+            'Delete Icon'
+          )
+        );
+        break;
+      case 'rename':
+        fireEvent.change(screen.getByLabelText('Edit Preset Name'), {
+          target: { value: 'Renamed' },
+        });
+        fireEvent.keyUp(screen.getByLabelText('Edit Preset Name'), {
+          key: 'Enter',
+          code: 'Enter',
+        });
+        break;
+      default:
+        throw new Error('Unexpected test action');
+    }
+
+    await waitFor(() =>
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    );
+    expect(loadPreset.mock.calls).toEqual(
+      action === 'load' ? [['Existing']] : []
+    );
+    expect(savePreset.mock.calls).toEqual(
+      action === 'save' ? [['Existing']] : []
+    );
+    expect(deletePreset.mock.calls).toEqual(
+      action === 'remove' ? [['Existing']] : []
+    );
+    expect(renamePreset.mock.calls).toEqual(
+      action === 'rename' ? [['Existing', 'Renamed']] : []
+    );
+  }
+);
+
+it('dismisses success messages too, without removing the imported preset', async () => {
+  const { user } = renderMenu();
+  drop([new File([content], 'Success.json')]);
+  await screen.findByText('Imported as “Success”.');
+
+  await user.click(screen.getByLabelText('Success'));
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchPreset('Success', directory)).toEqual(preset);
+  expect(loadPreset).not.toHaveBeenCalled();
+});
+
+it('does not restore dismissed messages when a pending import finishes', async () => {
+  let complete!: (result: PresetImportResult) => void;
+  importPreset.mockImplementationOnce(
+    () =>
+      new Promise<PresetImportResult>((resolve) => {
+        complete = resolve;
+      })
+  );
+  const { user } = renderMenu();
+  drop([new File([content], 'Pending.json')]);
+  await waitFor(() => expect(importPreset).toHaveBeenCalledTimes(1));
+
+  await user.click(screen.getByLabelText('Existing'));
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  complete({ presetName: 'Pending' });
+  await screen.findByLabelText('Pending');
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+  drop([new File(['not JSON'], 'Next.txt')]);
+  await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
+});
+
+it('rejects oversized files without reading/sending them and continues the batch', async () => {
+  renderMenu();
+  drop([
+    new File(['x'.repeat(MAX_PRESET_IMPORT_BYTES + 1)], 'Huge.json'),
+    new File([content], 'Small.json'),
+  ]);
+
+  await screen.findByLabelText('Small');
+  expect(
+    screen.getByText('Preset files must be no larger than 256 KiB.')
+  ).toBeInTheDocument();
+  expect(importPreset).toHaveBeenCalledTimes(1);
+  expect(importPreset).toHaveBeenCalledWith('Small.json', content);
+});
+
+it('rejects batches larger than 20 without importing any files', async () => {
+  renderMenu();
+  drop(
+    Array.from(
+      { length: 21 },
+      (_, index) => new File([content], `${index}.json`)
+    )
+  );
+
+  expect(
+    await screen.findByText('Drop at most 20 files at a time.')
+  ).toBeInTheDocument();
+  expect(importPreset).not.toHaveBeenCalled();
+});
+
+it('does not start a second import while the first is pending', async () => {
+  let complete!: (result: PresetImportResult) => void;
+  importPreset.mockImplementationOnce(
+    () =>
+      new Promise<PresetImportResult>((resolve) => {
+        complete = resolve;
+      })
+  );
+  renderMenu();
+  drop([new File([content], 'First.json')]);
+  await waitFor(() => expect(importPreset).toHaveBeenCalledTimes(1));
+  expect(screen.getByLabelText('Import AQUA preset files')).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Open preset files' })
+  ).toBeDisabled();
+  drop([new File([content], 'Second.json')]);
+  complete({ presetName: 'First' });
+
+  await screen.findByLabelText('First');
+  expect(importPreset).toHaveBeenCalledTimes(1);
+});
+
+it('shows a recoverable error if IPC fails, instead of disabling the application', async () => {
+  importPreset.mockRejectedValueOnce(new Error('IPC timeout'));
+  renderMenu();
+  drop([new File([content], 'Failed.json')]);
+
+  await screen.findByText(
+    'Could not read or import the file. Please try again.'
+  );
+  expect(screen.getByLabelText('Import AQUA preset files')).toBeEnabled();
+  drop([new File([content], 'Retry.json')]);
+  await screen.findByLabelText('Retry');
+});
+
+it('prevents accidental file navigation outside the drop target', () => {
+  renderMenu();
+
+  expect(
+    fireEvent.drop(document.body, { dataTransfer: { types: ['Files'] } })
+  ).toBe(false);
+});
+
+it('disables both drop and file picking when requested', () => {
+  setup(
+    <PresetImport
+      importPreset={importPreset}
+      onImported={jest.fn()}
+      isDisabled
+      loadButton={<button type="button">Load</button>}
+    >
+      <ul aria-label="preset-items">
+        <li>Existing</li>
+      </ul>
+    </PresetImport>
+  );
+  drop([new File([content], 'Disabled.json')]);
+
+  expect(screen.getByLabelText('Import AQUA preset files')).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Open preset files' })
+  ).toBeDisabled();
+  expect(importPreset).not.toHaveBeenCalled();
+});

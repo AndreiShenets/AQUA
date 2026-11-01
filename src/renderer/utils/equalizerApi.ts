@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 import ChannelEnum from 'common/channels';
+import { PresetImportResult } from 'common/presetImport';
 import {
   ErrorCode,
   ErrorDescription,
@@ -81,6 +82,7 @@ const buildResponseHandler = <
     | IState
     | IFiltersMap
     | string[]
+    | PresetImportResult,
 >(
   resultEvaluator: (
     result: Type,
@@ -111,6 +113,7 @@ const simpleResponseHandler = <
     | IState
     | IFiltersMap
     | string[]
+    | PresetImportResult,
 >() =>
   buildResponseHandler<Type>((result, resolve) => {
     resolve(result);
@@ -151,6 +154,19 @@ export const savePreset = (presetName: string): Promise<void> => {
   const channel = ChannelEnum.SAVE_PRESET;
   window.electron.ipcRenderer.sendMessage(channel, [presetName]);
   return promisifyResult(setterResponseHandler, channel);
+};
+
+export const importPreset = (
+  fileName: string,
+  content: string
+): Promise<PresetImportResult> => {
+  const channel = ChannelEnum.IMPORT_PRESET;
+  const response = promisifyResult(
+    simpleResponseHandler<PresetImportResult>(),
+    channel
+  );
+  window.electron.ipcRenderer.sendMessage(channel, [fileName, content]);
+  return response;
 };
 
 /**

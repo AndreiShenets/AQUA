@@ -48,6 +48,58 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     padding-top: $spacing-xs;
   }
 
+  .preset-drop-target {
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+
+    > .list-wrapper {
+      min-height: 0;
+    }
+
+    &.dragging > .list-wrapper {
+      border-color: $secondary-light;
+      box-shadow: 0 0 0 1px $secondary-light;
+    }
+  }
+
+  .preset-load-actions {
+    display: grid;
+    grid-template-columns: minmax(0px, 1fr) max-content;
+    gap: $spacing-s;
+    align-items: start;
+  }
+
+  .preset-open {
+    border: 0;
+    font-family: inherit;
+  }
+
+  .preset-import-controls {
+    min-width: 0;
+  }
+
+  .preset-import-results {
+    display: block;
+    max-height: 90px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+
+    p,
+    ul {
+      margin: $spacing-xs 0 0;
+    }
+
+    ul {
+      padding-left: $spacing-m;
+    }
+
+    .import-error {
+      color: $red;
+    }
+  }
+
   .preset-list-item {
     min-height: $spacing-l;
     padding: $spacing-xs $spacing-s;

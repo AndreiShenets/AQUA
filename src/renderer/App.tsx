@@ -31,6 +31,7 @@ import {
   loadPreset,
   renamePreset,
   savePreset,
+  importPreset,
 } from './utils/equalizerApi';
 
 const AppContent = () => {
@@ -47,6 +48,7 @@ const AppContent = () => {
         fetchPresets={getPresetListFromFiles}
         loadPreset={loadPreset}
         savePreset={savePreset}
+        importPreset={importPreset}
         renamePreset={renamePreset}
         deletePreset={deletePreset}
       />
