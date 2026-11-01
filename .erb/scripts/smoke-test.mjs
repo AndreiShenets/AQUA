@@ -262,6 +262,19 @@ try {
   );
   assert.equal(readConfig(), savedConfig);
 
+  await driver.execute(() => {
+    document.querySelector('[aria-label="Smoke imported"]').click();
+  });
+  await driver.waitUntil(
+    () =>
+      driver.execute(() => !document.querySelector('.preset-import-results')),
+    {
+      timeout: 10000,
+      timeoutMsg: 'Preset selection did not dismiss import messages',
+    }
+  );
+  assert.equal(readConfig(), savedConfig);
+
   await driver.deleteSession();
   driver = undefined;
   driver = await launch();
@@ -296,7 +309,7 @@ try {
   }
   assert.equal(readConfig(), savedConfig);
   console.log(
-    'Packaged smoke test passed: legacy BP, BP/LP/HP EQ, preset drop import, invalid/duplicate rejection, unchanged active settings, and persistence after restart.'
+    'Packaged smoke test passed: legacy BP, BP/LP/HP EQ, preset drop import, invalid/duplicate rejection, message dismissal on selection, unchanged active settings, and persistence after restart.'
   );
 } catch (error) {
   if (driver) {

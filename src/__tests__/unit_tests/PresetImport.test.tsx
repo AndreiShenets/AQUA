@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { FilterTypeEnum, getDefaultFilterWithId } from 'common/constants';
 import {
   MAX_PRESET_IMPORT_BYTES,
@@ -39,6 +39,8 @@ beforeEach(() => {
   );
   loadPreset.mockClear();
   savePreset.mockClear();
+  renamePreset.mockClear();
+  deletePreset.mockClear();
 });
 afterEach(() => {
   fs.rmSync(directory, { recursive: true, force: true });
@@ -152,6 +154,111 @@ it('places unsupported-file messages below the Load/Open row, outside the list',
   expect(
     screen.getByRole('region', { name: 'Preset import' })
   ).not.toContainElement(messages);
+});
+
+it.each(['selection', 'name change', 'load', 'save', 'remove', 'rename'])(
+  'dismisses import messages on preset %s',
+  async (action) => {
+    fetchPresets.mockResolvedValueOnce(['Existing', 'Second']);
+    const { user } = renderMenu();
+    await user.click(await screen.findByLabelText('Existing'));
+    if (action === 'rename') {
+      await user.click(
+        within(screen.getByLabelText('Existing')).getByLabelText('Edit Icon')
+      );
+    }
+    drop([new File(['not JSON'], 'Unsupported.txt')]);
+    await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
+
+    switch (action) {
+      case 'selection':
+        await user.click(screen.getByLabelText('Second'));
+        break;
+      case 'name change':
+        fireEvent.change(screen.getByLabelText('Preset Name'), {
+          target: { value: 'New name' },
+        });
+        break;
+      case 'load':
+        await user.click(
+          screen.getByRole('button', { name: 'Load selected preset' })
+        );
+        break;
+      case 'save':
+        await user.click(
+          screen.getByRole('button', { name: 'Save settings to preset' })
+        );
+        break;
+      case 'remove':
+        await user.click(
+          within(screen.getByLabelText('Existing')).getByLabelText(
+            'Delete Icon'
+          )
+        );
+        break;
+      case 'rename':
+        fireEvent.change(screen.getByLabelText('Edit Preset Name'), {
+          target: { value: 'Renamed' },
+        });
+        fireEvent.keyUp(screen.getByLabelText('Edit Preset Name'), {
+          key: 'Enter',
+          code: 'Enter',
+        });
+        break;
+      default:
+        throw new Error('Unexpected test action');
+    }
+
+    await waitFor(() =>
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    );
+    expect(loadPreset.mock.calls).toEqual(
+      action === 'load' ? [['Existing']] : []
+    );
+    expect(savePreset.mock.calls).toEqual(
+      action === 'save' ? [['Existing']] : []
+    );
+    expect(deletePreset.mock.calls).toEqual(
+      action === 'remove' ? [['Existing']] : []
+    );
+    expect(renamePreset.mock.calls).toEqual(
+      action === 'rename' ? [['Existing', 'Renamed']] : []
+    );
+  }
+);
+
+it('dismisses success messages too, without removing the imported preset', async () => {
+  const { user } = renderMenu();
+  drop([new File([content], 'Success.json')]);
+  await screen.findByText('Imported as “Success”.');
+
+  await user.click(screen.getByLabelText('Success'));
+
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(fetchPreset('Success', directory)).toEqual(preset);
+  expect(loadPreset).not.toHaveBeenCalled();
+});
+
+it('does not restore dismissed messages when a pending import finishes', async () => {
+  let complete!: (result: PresetImportResult) => void;
+  importPreset.mockImplementationOnce(
+    () =>
+      new Promise<PresetImportResult>((resolve) => {
+        complete = resolve;
+      })
+  );
+  const { user } = renderMenu();
+  drop([new File([content], 'Pending.json')]);
+  await waitFor(() => expect(importPreset).toHaveBeenCalledTimes(1));
+
+  await user.click(screen.getByLabelText('Existing'));
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  complete({ presetName: 'Pending' });
+  await screen.findByLabelText('Pending');
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+  drop([new File(['not JSON'], 'Next.txt')]);
+  await screen.findByText('Invalid JSON. Drop an AQUA preset file.');
 });
 
 it('rejects oversized files without reading/sending them and continues the batch', async () => {

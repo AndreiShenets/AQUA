@@ -14,6 +14,7 @@ interface IPresetImportProps {
   isDisabled: boolean;
   children: ReactNode;
   loadButton: ReactNode;
+  messageRevision?: number;
 }
 
 const readText = (file: File) =>
@@ -31,12 +32,14 @@ const PresetImport = ({
   isDisabled,
   children,
   loadButton,
+  messageRevision = 0,
 }: IPresetImportProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [results, setResults] = useState<
     { fileName: string; message: string; failed: boolean }[]
   >([]);
+  const [reportRevision, setReportRevision] = useState(messageRevision);
   const busy = useRef(false);
   const dragDepth = useRef(0);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -60,6 +63,10 @@ const PresetImport = ({
     if (isDisabled || busy.current || files.length === 0) {
       return;
     }
+    // Tie messages to the user context where the import began. Preset actions
+    // dismiss that report, including any later results from an in-flight batch,
+    // without cancelling persistence or removing imported menu entries.
+    setReportRevision(messageRevision);
     if (files.length > MAX_PRESET_IMPORT_FILES) {
       setResults([
         {
@@ -171,24 +178,25 @@ const PresetImport = ({
             }}
           />
         </div>
-        {(isImporting || results.length > 0) && (
-          <output className="preset-import-results">
-            {isImporting && <p>Importing presets…</p>}
-            {results.length > 0 && (
-              <ul>
-                {results.map(({ fileName, message, failed }, index) => (
-                  <li
-                    key={`${index}-${fileName}`}
-                    className={failed ? 'import-error' : ''}
-                  >
-                    {fileName && <strong>{fileName}: </strong>}
-                    {message}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </output>
-        )}
+        {reportRevision === messageRevision &&
+          (isImporting || results.length > 0) && (
+            <output className="preset-import-results">
+              {isImporting && <p>Importing presets…</p>}
+              {results.length > 0 && (
+                <ul>
+                  {results.map(({ fileName, message, failed }, index) => (
+                    <li
+                      key={`${index}-${fileName}`}
+                      className={failed ? 'import-error' : ''}
+                    >
+                      {fileName && <strong>{fileName}: </strong>}
+                      {message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </output>
+          )}
       </div>
     </>
   );

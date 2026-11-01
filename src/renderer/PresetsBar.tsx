@@ -106,6 +106,10 @@ const PresetsBar = ({
   const [presetName, setPresetName] = useState<string>('');
   const [newPresetNameError, setNewPresetNameError] = useState<string>('');
   const [presetNames, dispatchPresetNames] = useReducer(presetReducer, []);
+  const [importMessageRevision, dismissImportMessages] = useReducer(
+    (revision: number) => revision + 1,
+    0
+  );
 
   const handleImported = useCallback((name: string) => {
     dispatchPresetNames({ type: PresetActionEnum.CREATE, presetName: name });
@@ -140,6 +144,7 @@ const PresetsBar = ({
       return;
     }
 
+    dismissImportMessages();
     try {
       await savePreset(presetName);
 
@@ -164,6 +169,7 @@ const PresetsBar = ({
   // Loading audio settings from an existing preset
   const handleLoadPreset = async () => {
     if (isExistingPresetSelected) {
+      dismissImportMessages();
       try {
         await loadPreset(presetName);
         performHealthCheck();
@@ -237,6 +243,7 @@ const PresetsBar = ({
   );
 
   const handleChangeNewPresetName = (newValue: string) => {
+    dismissImportMessages();
     setPresetName(newValue);
 
     // Validate new preset name and update error message accordingly
@@ -246,6 +253,7 @@ const PresetsBar = ({
 
   // Changing the selected preset in the UI
   const handleChangeSelectedPreset = (newValue: string, e?: MouseEvent) => {
+    dismissImportMessages();
     setPresetName(newValue);
 
     // Load preset when it is double clicked
@@ -257,6 +265,7 @@ const PresetsBar = ({
   // Deleting a preset
   const handleDeletePreset = useCallback(
     (deletedValue: string) => async () => {
+      dismissImportMessages();
       try {
         await deletePreset(deletedValue);
         dispatchPresetNames({
@@ -276,6 +285,7 @@ const PresetsBar = ({
   // Renaming an existing preset
   const handleRenameExistingPresetName = useCallback(
     (oldName: string) => async (newName: string) => {
+      dismissImportMessages();
       try {
         await renamePreset(oldName, newName);
         dispatchPresetNames({
@@ -343,6 +353,7 @@ const PresetsBar = ({
       <PresetImport
         importPreset={importPreset}
         onImported={handleImported}
+        messageRevision={importMessageRevision}
         isDisabled={!!globalError}
         loadButton={
           <Button
